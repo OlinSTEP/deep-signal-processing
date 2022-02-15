@@ -1,4 +1,5 @@
 import os
+import random
 import nltk
 
 class Book(object):
@@ -20,6 +21,9 @@ class Book(object):
         else:
             self.current_index = 0
 
+        self.idxs = [i for i in range(len(sentences))]
+        random.shuffle(self.idxs)
+
     def __enter__(self):
         return self
 
@@ -32,4 +36,7 @@ class Book(object):
         return self.sentences[self.current_index]
 
     def next(self):
-        self.current_index = (self.current_index+1) % len(self.sentences)
+        self._current_index = (self._current_index+1) % len(self.sentences)
+        if self._current_index == 0:
+            random.shuffle(self.idxs)
+        self.current_index = self.idxs[self._current_index]

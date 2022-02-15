@@ -61,7 +61,7 @@ def get_ends(data):
     chunk_info = [(500,8000,500)]
     return (emg_start, dummy_audio, dummy_button, chunk_info), (emg_end, dummy_audio, dummy_button, chunk_info)
 
-def main(stdscr):
+def main(stdscr, num_read_through):
     os.makedirs(FLAGS.output_directory, exist_ok=False)
     output_idx = 0
 
@@ -77,7 +77,7 @@ def main(stdscr):
         stdscr.addstr(0,0,'<Press any key to begin.>')
         stdscr.refresh()
 
-        while True:
+        for _ in range(num_read_through * len(book.sentences)):
             r.update()
             if not recording:
                 c = stdscr.getch()
@@ -120,4 +120,8 @@ def main(stdscr):
 
 
 FLAGS(sys.argv)
-curses.wrapper(main)
+voiced_main = lambda x: main(x, 1)
+curses.wrapper(voiced_main)
+print("Voiced section over! Read the following sections silently")
+silent_main = lambda x: main(x, 10)
+curses.wrapper(silent_main)
