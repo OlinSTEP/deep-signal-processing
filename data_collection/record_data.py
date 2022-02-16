@@ -52,7 +52,7 @@ def get_last_sequence(chunk_list, n, k, do_filtering, fs):
     return result_padded
 
 class Recorder(object):
-    def __init__(self, debug=False, display=True, num_channels=None, wifi=True):
+    def __init__(self, debug=False, display=True, num_channels=None, wifi=False):
         # make audio stream
 
         self.audio_stream = sd.InputStream(device=None, channels=1, samplerate=16000)

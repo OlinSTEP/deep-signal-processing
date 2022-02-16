@@ -3,8 +3,8 @@ import random
 import nltk
 
 class Book(object):
-    def __init__(self, book_file):
-        self.file = book_file
+    def __init__(self, book_file, book_name):
+        self.file = book_name
 
         sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
 
@@ -17,12 +17,13 @@ class Book(object):
         bookmark_file = self.file + '.bookmark'
         if os.path.exists(bookmark_file):
             with open(bookmark_file) as f:
-                self.current_index = int(f.read().strip())
+                self._current_index = int(f.read().strip())
         else:
-            self.current_index = 0
+            self._current_index = 0
 
         self.idxs = [i for i in range(len(sentences))]
         random.shuffle(self.idxs)
+        self.current_index = self.idxs[self._current_index]
 
     def __enter__(self):
         return self
@@ -37,6 +38,6 @@ class Book(object):
 
     def next(self):
         self._current_index = (self._current_index+1) % len(self.sentences)
+        self.current_index = self.idxs[self._current_index]
         if self._current_index == 0:
             random.shuffle(self.idxs)
-        self.current_index = self.idxs[self._current_index]

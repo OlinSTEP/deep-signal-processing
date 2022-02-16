@@ -5,6 +5,8 @@ import curses
 import soundfile as sf
 import json
 import numpy as np
+import random
+import string
 
 from read_book import Book
 from record_data import Recorder
@@ -61,7 +63,7 @@ def get_ends(data):
     chunk_info = [(500,8000,500)]
     return (emg_start, dummy_audio, dummy_button, chunk_info), (emg_end, dummy_audio, dummy_button, chunk_info)
 
-def main(stdscr, num_read_through):
+def main(stdscr, num_read_through, book_name):
     os.makedirs(FLAGS.output_directory, exist_ok=False)
     output_idx = 0
 
@@ -72,12 +74,12 @@ def main(stdscr, num_read_through):
 
     recording = False
 
-    with Recorder(debug=FLAGS.debug) as r, Book(FLAGS.book_file) as book:
+    with Recorder(debug=FLAGS.debug) as r, Book(FLAGS.book_file, book_name) as book:
         stdscr.clear()
         stdscr.addstr(0,0,'<Press any key to begin.>')
         stdscr.refresh()
 
-        for _ in range(num_read_through * len(book.sentences)):
+        while output_idx < num_read_through * len(book.sentences) + 1:
             r.update()
             if not recording:
                 c = stdscr.getch()
@@ -120,8 +122,19 @@ def main(stdscr, num_read_through):
 
 
 FLAGS(sys.argv)
-voiced_main = lambda x: main(x, 1)
+output_directory = FLAGS.output_directory
+voiced_dir = output_directory + "_voiced"
+silent_dir = output_directory + "_silent"
+book_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=32))
+
+voiced_main = lambda x: main(x, 1, book_name)
+FLAGS.output_directory = voiced_dir
 curses.wrapper(voiced_main)
+
 print("Voiced section over! Read the following sections silently")
-silent_main = lambda x: main(x, 10)
+
+from time import sleep
+sleep(5)
+FLAGS.output_directory = silent_dir
+silent_main = lambda x: main(x, 10, book_name)
 curses.wrapper(silent_main)
