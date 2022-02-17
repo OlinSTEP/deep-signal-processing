@@ -1,5 +1,6 @@
 import numpy as np
 import librosa
+import scipy
 
 import matplotlib.pyplot as plt
 
@@ -14,6 +15,7 @@ def double_average(x):
     v = np.convolve(x, f, mode='same')
     w = np.convolve(v, f, mode='same')
     return w
+
 
 def get_emg_features(emg_data, debug=False):
     xs = emg_data - emg_data.mean(axis=0, keepdims=True)
@@ -61,6 +63,7 @@ def get_emg_features(emg_data, debug=False):
     frame_features = np.concatenate(frame_features, axis=1)
     return frame_features.astype(np.float32)
 
+
 class FeatureNormalizer(object):
     def __init__(self, feature_samples, share_scale=False):
         """ features_samples should be list of 2d matrices with dimension (time, feature) """
@@ -80,3 +83,43 @@ class FeatureNormalizer(object):
         sample = sample * self.feature_stddevs
         sample = sample + self.feature_means
         return sample
+
+
+def remove_drift(signal, fs):
+    b, a = scipy.signal.butter(3, 2, 'highpass', fs=fs)
+    return scipy.signal.filtfilt(b, a, signal)
+
+
+def notch(signal, freq, sample_frequency):
+    b, a = scipy.signal.iirnotch(freq, 30, sample_frequency)
+    return scipy.signal.filtfilt(b, a, signal)
+
+
+def notch_harmonics(signal, freq, sample_frequency):
+    for harmonic in range(1,8):
+        signal = notch(signal, freq*harmonic, sample_frequency)
+    return signal
+
+
+def subsample(signal, new_freq, old_freq):
+    times = np.arange(len(signal))/old_freq
+    sample_times = np.arange(0, times[-1], 1/new_freq)
+    result = np.interp(sample_times, times, signal)
+    return result
+
+
+def apply_to_all(function, signal_array, *args, **kwargs):
+    results = []
+    for i in range(signal_array.shape[1]):
+        results.append(function(signal_array[:,i], *args, **kwargs))
+    return np.stack(results, 1)
+
+
+def process_emg(emg_before, emg, emg_after):
+    x = np.concatenate([emg_before, emg, emg_after], 0)
+    x = apply_to_all(notch_harmonics, x, 60, 1000)
+    x = apply_to_all(remove_drift, x, 1000)
+    x = x[emg_before.shape[0]:x.shape[0] - emg_after.shape[0], :]
+    emg_orig = apply_to_all(subsample, x, 800, 1000)
+    x = apply_to_all(subsample, x, 600, 1000)
+    return x, emg_orig
