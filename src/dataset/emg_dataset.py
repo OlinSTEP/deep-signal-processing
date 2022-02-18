@@ -35,10 +35,11 @@ class EMGDataset(torch.utils.data.Dataset):
     input_encoder_cls = None
     target_encoder_cls = None
 
-    def __init__(self, dev=False, test=False):
+    def __init__(self, config, dev=False, test=False):
+        self.config = config
         self.example_indices = self.build_example_indices(dev=dev, test=test)
-        self.input_encoder = self.build_input_encoder()
-        self.target_encoder = self.build_target_encoder()
+        self.input_encoder = self.build_input_encoder(config)
+        self.target_encoder = self.build_target_encoder(config)
 
     def __len__(self):
         return len(self.example_indices)
@@ -121,18 +122,18 @@ class EMGDataset(torch.utils.data.Dataset):
 
         return emg_orig.astype(np.float32), info['text']
 
-    def build_input_encoder(self):
+    def build_input_encoder(self, config):
         if self.input_encoder_cls is None:
             raise NotImplementedError()
-        input_encoder = self.input_encoder_cls()
+        input_encoder = self.input_encoder_cls(config)
         return input_encoder
 
-    def build_target_encoder(self):
+    def build_target_encoder(self, config):
         datapoints = [self.load_utterance(*loc) for loc in self.example_indices]
         targets = [target for _, target in datapoints]
         if self.target_encoder_cls is None:
             raise NotImplementedError()
-        target_encoder = self.target_encoder_cls()
+        target_encoder = self.target_encoder_cls(config)
         target_encoder.fit(targets)
         return target_encoder
 
