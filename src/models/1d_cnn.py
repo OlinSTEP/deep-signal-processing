@@ -5,7 +5,7 @@ import numpy as np
 from src.models.model import Model
 
 
-class EMGCNN(Model):
+class CNN1D(Model):
     def __init__(self, in_size, fcs, convs, n_out):
         """
         Constructor.
@@ -61,6 +61,6 @@ class EMGCNN(Model):
 
 
 if __name__ == "__main__":
-    model = EMGCNN((5, 150), [128, 64], [(3, 2, 3, 3, 2)], 1)
+    model = CNN1D((5, 150), [128, 64], [(3, 2, 3, 3, 2)], 1)
     print(list(model.named_parameters()))
     print(model(torch.tensor(np.ones((5, 150), dtype=np.float32)[None, :])))

@@ -64,27 +64,6 @@ def get_emg_features(emg_data, debug=False):
     return frame_features.astype(np.float32)
 
 
-class FeatureNormalizer(object):
-    def __init__(self, feature_samples, share_scale=False):
-        """ features_samples should be list of 2d matrices with dimension (time, feature) """
-        feature_samples = np.concatenate(feature_samples, axis=0)
-        self.feature_means = feature_samples.mean(axis=0, keepdims=True)
-        if share_scale:
-            self.feature_stddevs = feature_samples.std()
-        else:
-            self.feature_stddevs = feature_samples.std(axis=0, keepdims=True)
-
-    def normalize(self, sample):
-        sample -= self.feature_means
-        sample /= self.feature_stddevs
-        return sample
-
-    def inverse(self, sample):
-        sample = sample * self.feature_stddevs
-        sample = sample + self.feature_means
-        return sample
-
-
 def remove_drift(signal, fs):
     b, a = scipy.signal.butter(3, 2, 'highpass', fs=fs)
     return scipy.signal.filtfilt(b, a, signal)

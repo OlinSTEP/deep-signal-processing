@@ -4,11 +4,10 @@ import numpy as np
 import random
 import json
 import sys
-import pickle
 
 import torch
 
-from src.dataset.utils import process_emg, get_emg_features, FeatureNormalizer
+from src.dataset.utils import process_emg, get_emg_features
 
 from absl import flags
 FLAGS = flags.FLAGS
@@ -17,40 +16,6 @@ flags.DEFINE_list('silent_data_directories', ['./emg_data/silent_parallel_data']
 flags.DEFINE_list('voiced_data_directories', ['./emg_data/voiced_parallel_data','./emg_data/nonparallel_data'], 'voiced data locations')
 flags.DEFINE_string('testset_file', 'testset_largedev.json', 'file with testset indices')
 flags.DEFINE_string('text_align_directory', 'text_alignments', 'directory with alignment files')
-
-
-def load_utterance(base_dir, index):
-    index = int(index)
-    raw_emg = np.load(os.path.join(base_dir, f'{index}_emg.npy'))
-    before = os.path.join(base_dir, f'{index - 1}_emg.npy')
-    after = os.path.join(base_dir, f'{index + 1}_emg.npy')
-    if os.path.exists(before):
-        raw_emg_before = np.load(before)
-    else:
-        raw_emg_before = np.zeros([0, raw_emg.shape[1]])
-    if os.path.exists(after):
-        raw_emg_after = np.load(after)
-    else:
-        raw_emg_after = np.zeros([0, raw_emg.shape[1]])
-
-    emg, emg_orig = process_emg(raw_emg_before, raw_emg, raw_emg_after)
-
-    for c in FLAGS.remove_channels:
-        emg[:, int(c)] = 0
-        emg_orig[:, int(c)] = 0
-
-    emg_features = get_emg_features(emg)
-    emg = emg[6:6 + 6 * emg_features.shape[0], :]
-    emg_orig = emg_orig[8:8 + 8 * emg_features.shape[0], :]
-    assert emg.shape[0] == emg_features.shape[0] * 6
-
-    with open(os.path.join(base_dir, f'{index}_info.json')) as f:
-        info = json.load(f)
-
-    return (
-        emg_features, emg_orig.astype(np.float32),
-        info['text'], (info['book'], info['sentence_index'])
-    )
 
 
 class EMGDirectory(object):
@@ -67,15 +32,35 @@ class EMGDirectory(object):
 
 
 class EMGDataset(torch.utils.data.Dataset):
-    def __init__(self, dev=False, test=False, no_testset=False, no_normalizers=False):
-        if no_testset:
-            devset = []
-            testset = []
-        else:
-            with open(FLAGS.testset_file) as f:
-                testset_json = json.load(f)
-                devset = testset_json['dev']
-                testset = testset_json['test']
+    input_encoder_cls = None
+    target_encoder_cls = None
+
+    def __init__(self, dev=False, test=False):
+        self.example_indices = self.build_example_indices(dev=dev, test=test)
+        self.input_encoder = self.build_input_encoder()
+        self.target_encoder = self.build_target_encoder()
+
+    def __len__(self):
+        return len(self.example_indices)
+
+    def __getitem__(self, i):
+        directory_info, idx = self.example_indices[i]
+        emg, text = self.load_utterance(directory_info.directory, idx)
+        emg = emg / 10
+        session_ids = np.full(
+            emg.shape[0], directory_info.session_index, dtype=np.int64
+        )
+        return {
+            'emg': self.input_encoder(emg),
+            'text': self.target_encoder(text),
+            'session_ids': session_ids,
+        }
+
+    def build_example_indices(self, test=False, dev=False):
+        with open(FLAGS.testset_file) as f:
+            testset_json = json.load(f)
+            devset = testset_json['dev']
+            testset = testset_json['test']
 
         directories = []
         for sd in FLAGS.silent_data_directories:
@@ -84,7 +69,7 @@ class EMGDataset(torch.utils.data.Dataset):
                     EMGDirectory(len(directories), os.path.join(sd, session_dir))
                 )
 
-        self.example_indices = []
+        example_indices = []
         for directory_info in directories:
             for fname in os.listdir(directory_info.directory):
                 m = re.match(r'(\d+)_info.json', fname)
@@ -100,60 +85,61 @@ class EMGDataset(torch.utils.data.Dataset):
                     if (test and location_in_testset and not directory_info.exclude_from_testset) \
                         or (dev and location_in_devset and not directory_info.exclude_from_testset) \
                         or (not test and not dev and not location_in_testset and not location_in_devset):
-                        self.example_indices.append((directory_info, int(idx_str)))
-
-        self.example_indices.sort()
+                        example_indices.append((directory_info, int(idx_str)))
+        example_indices.sort()
         random.seed(0)
-        random.shuffle(self.example_indices)
+        random.shuffle(example_indices)
+        return example_indices
 
-        self.no_normalizers = no_normalizers
-        if not self.no_normalizers:
-            self.emg_norm = pickle.load(open(FLAGS.normalizers_file,'rb'))
+    def load_utterance(self, base_dir, index):
+        index = int(index)
+        raw_emg = np.load(os.path.join(base_dir, f'{index}_emg.npy'))
+        before = os.path.join(base_dir, f'{index - 1}_emg.npy')
+        after = os.path.join(base_dir, f'{index + 1}_emg.npy')
+        if os.path.exists(before):
+            raw_emg_before = np.load(before)
+        else:
+            raw_emg_before = np.zeros([0, raw_emg.shape[1]])
+        if os.path.exists(after):
+            raw_emg_after = np.load(after)
+        else:
+            raw_emg_after = np.zeros([0, raw_emg.shape[1]])
 
-        sample_emg, *_ = load_utterance(
-            self.example_indices[0][0].directory, self.example_indices[0][1]
-        )
-        self.num_features = sample_emg.shape[1]
-        self.num_sessions = len(directories)
+        emg, emg_orig = process_emg(raw_emg_before, raw_emg, raw_emg_after)
 
-    def __len__(self):
-        return len(self.example_indices)
+        for c in FLAGS.remove_channels:
+            emg[:, int(c)] = 0
+            emg_orig[:, int(c)] = 0
 
-    def __getitem__(self, i):
-        directory_info, idx = self.example_indices[i]
-        emg, raw_emg, text, _ = load_utterance(
-            directory_info.directory, idx
-        )
-        raw_emg = raw_emg / 10
+        emg_features = get_emg_features(emg)
+        emg = emg[6:6 + 6 * emg_features.shape[0], :]
+        emg_orig = emg_orig[8:8 + 8 * emg_features.shape[0], :]
+        assert emg.shape[0] == emg_features.shape[0] * 6
 
-        if not self.no_normalizers:
-            emg = self.emg_norm.normalize(emg)
-            emg = 8 * np.tanh(emg / 8.)
+        with open(os.path.join(base_dir, f'{index}_info.json')) as f:
+            info = json.load(f)
 
-        session_ids = np.full(
-            emg.shape[0], directory_info.session_index, dtype=np.int64
-        )
+        return emg_orig.astype(np.float32), info['text']
 
-        return {
-            'emg': emg,
-            'raw_emg': raw_emg,
-            'text': text,
-            'session_ids': session_ids,
-        }
+    def build_input_encoder(self):
+        if self.input_encoder_cls is None:
+            raise NotImplementedError()
+        input_encoder = self.input_encoder_cls()
+        return input_encoder
 
-    @staticmethod
-    def collate_fixed_length(batch):
-        pass
+    def build_target_encoder(self):
+        datapoints = [self.load_utterance(*loc) for loc in self.example_indices]
+        targets = [target for _, target in datapoints]
+        if self.target_encoder_cls is None:
+            raise NotImplementedError()
+        target_encoder = self.target_encoder_cls()
+        target_encoder.fit(targets)
+        return target_encoder
 
-def make_normalizers():
-    dataset = EMGDataset(no_normalizers=True)
-    emg_samples = []
-    for d in dataset:
-        emg_samples.append(d['emg'])
-        if len(emg_samples) > 50:
-            break
-    emg_norm = FeatureNormalizer(emg_samples, share_scale=False)
-    pickle.dump(emg_norm, open(FLAGS.normalizers_file, 'wb'))
+    @property
+    def collate_fn(self):
+        return self.input_encoder.collate_fn
+
 
 if __name__ == '__main__':
     FLAGS(sys.argv)
