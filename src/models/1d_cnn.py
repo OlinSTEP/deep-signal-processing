@@ -6,9 +6,8 @@ from src.models.model import Model
 
 
 class CNN1D(Model):
-    def __init__(self, in_size, fcs, convs, n_out):
+    def __init__(self, in_size, fcs, convs, n_out, drop_prob=0.5):
         """
-        Constructor.
         Parameters:
             in_size: Input size, expected  to be (channels, length)
             fcs: Iterable containing the amount of neurons per layer
@@ -19,6 +18,7 @@ class CNN1D(Model):
                 ex: ((3, 1, 16, 2, 2)) would make 1 convolution layer with an 3 length
                 kernel, 1 stride, 16 output channels, 2 length max and 2 stride max pooling
             n_out: Number of output classes
+            drop_prob: Probability of dropout. Dropout is not used if < 0
         """
         super().__init__()
         in_channels, _ = in_size
@@ -28,6 +28,8 @@ class CNN1D(Model):
             self.convs.append(nn.Conv1d(last_size, out_size, kernel_len, stride))
             if pool_len > 1:
                 self.convs.append(nn.MaxPool1d(pool_len, pool_stride))
+            if drop_prob > 0:
+                self.convs.append(nn.Dropout(p=drop_prob))
             last_size = out_size
 
         x = torch.tensor(np.ones(in_size, dtype=np.float32)[None, :])
@@ -39,6 +41,8 @@ class CNN1D(Model):
         self.fcs = nn.ModuleList()
         for fc_size in fcs:
             self.fcs.append(nn.Linear(last_size, fc_size))
+            if drop_prob > 0:
+                self.fcs.append(nn.Dropout(p=drop_prob))
             last_size = fc_size
         self.out = nn.Linear(last_size, n_out)
 
