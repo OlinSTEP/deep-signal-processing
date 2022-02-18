@@ -2,11 +2,11 @@ from abc import ABC, abstractmethod
 
 
 class AbstractTargetEncoder(ABC):
-    def __init__(self, config):
-        self.config = config
+    def __init__(self):
         self.target_labels = None
         self.target_to_idx = None
         self.idx_to_target = None
+        super().__init__()
 
     @abstractmethod
     def fit(self, targets):
@@ -29,7 +29,7 @@ class AbstractTargetEncoder(ABC):
 
 class PhraseTargetEncoder(AbstractTargetEncoder):
     def __init__(self, config):
-        super().__init__(config)
+        super().__init__()
 
     def fit(self, phrases):
         self.target_labels = sorted(list(set(phrases)))

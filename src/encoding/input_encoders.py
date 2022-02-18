@@ -4,8 +4,8 @@ from torch import nn
 
 
 class AbstractInputEncoder(ABC):
-    def __init__(self, config):
-        self.config = config
+    def __init__(self):
+        super().__init__()
 
     @abstractmethod
     def transform(self, emg_data):

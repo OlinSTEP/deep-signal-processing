@@ -27,7 +27,10 @@ class EMGDataset(torch.utils.data.Dataset):
     target_encoder_cls = None
 
     def __init__(self, config, dev=False, test=False):
-        self.config = config
+        self.testset = config.testset
+        self.data = config.data
+        self.remove_channels = config.remove_channels
+
         self.example_indices = self.build_example_indices(dev=dev, test=test)
         self.input_encoder = self.build_input_encoder(config)
         self.target_encoder = self.build_target_encoder(config)
@@ -49,7 +52,7 @@ class EMGDataset(torch.utils.data.Dataset):
         }
 
     def build_example_indices(self, test=False, dev=False):
-        with open(self.config.testset) as f:
+        with open(self.testset) as f:
             testset_json = json.load(f)
             devset = testset_json['dev']
             testset = testset_json['test']
@@ -99,7 +102,7 @@ class EMGDataset(torch.utils.data.Dataset):
 
         emg, emg_orig = process_emg(raw_emg_before, raw_emg, raw_emg_after)
 
-        for c in self.config.remove_channels:
+        for c in self.remove_channels:
             emg[:, int(c)] = 0
             emg_orig[:, int(c)] = 0
 
