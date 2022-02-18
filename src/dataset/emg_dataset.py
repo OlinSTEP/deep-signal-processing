@@ -8,7 +8,7 @@ import pickle
 
 import torch
 
-from src.process_data.utils import process_emg, get_emg_features, FeatureNormalizer
+from src.dataset.utils import process_emg, get_emg_features, FeatureNormalizer
 
 from absl import flags
 FLAGS = flags.FLAGS
