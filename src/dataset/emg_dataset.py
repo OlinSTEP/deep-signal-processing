@@ -51,8 +51,8 @@ class EMGDataset(torch.utils.data.Dataset):
             emg.shape[0], directory_info.session_index, dtype=np.int64
         )
         return {
-            'emg': self.input_encoder(emg),
-            'text': self.target_encoder(text),
+            'emg': self.input_encoder.transform(emg),
+            'text': self.target_encoder.transform(text),
             'session_ids': session_ids,
         }
 
