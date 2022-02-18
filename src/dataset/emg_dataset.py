@@ -3,19 +3,10 @@ import os
 import numpy as np
 import random
 import json
-import sys
 
 import torch
 
 from src.dataset.utils import process_emg, get_emg_features
-
-from absl import flags
-FLAGS = flags.FLAGS
-flags.DEFINE_list('remove_channels', [], 'channels to remove')
-flags.DEFINE_list('silent_data_directories', ['./emg_data/silent_parallel_data'], 'silent data locations')
-flags.DEFINE_list('voiced_data_directories', ['./emg_data/voiced_parallel_data','./emg_data/nonparallel_data'], 'voiced data locations')
-flags.DEFINE_string('testset_file', 'testset_largedev.json', 'file with testset indices')
-flags.DEFINE_string('text_align_directory', 'text_alignments', 'directory with alignment files')
 
 
 class EMGDirectory(object):
@@ -58,13 +49,13 @@ class EMGDataset(torch.utils.data.Dataset):
         }
 
     def build_example_indices(self, test=False, dev=False):
-        with open(FLAGS.testset_file) as f:
+        with open(self.config.testset) as f:
             testset_json = json.load(f)
             devset = testset_json['dev']
             testset = testset_json['test']
 
         directories = []
-        for sd in FLAGS.silent_data_directories:
+        for sd in self.config.data:
             for session_dir in sorted(os.listdir(sd)):
                 directories.append(
                     EMGDirectory(len(directories), os.path.join(sd, session_dir))
@@ -108,7 +99,7 @@ class EMGDataset(torch.utils.data.Dataset):
 
         emg, emg_orig = process_emg(raw_emg_before, raw_emg, raw_emg_after)
 
-        for c in FLAGS.remove_channels:
+        for c in self.config.remove_channels:
             emg[:, int(c)] = 0
             emg_orig[:, int(c)] = 0
 
@@ -140,10 +131,3 @@ class EMGDataset(torch.utils.data.Dataset):
     @property
     def collate_fn(self):
         return self.input_encoder.collate_fn
-
-
-if __name__ == '__main__':
-    FLAGS(sys.argv)
-    d = EMGDataset()
-    for i in range(1000):
-        d[i]
