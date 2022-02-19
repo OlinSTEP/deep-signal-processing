@@ -79,6 +79,20 @@ def config_from_args(args):
         default=0.25
     )
 
+    # Training hyperparameters
+    parser.add_argument(
+        "--lr", type=float,
+        default=1e-4
+    )
+    parser.add_argument(
+        "--epochs", type=int,
+        default=50
+    )
+    parser.add_argument(
+        "--batch_size", type=int,
+        default=128
+    )
+
     config = parser.parse_args(args)
     validate_config(config)
 

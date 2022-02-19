@@ -32,8 +32,10 @@ class EMGDataset(torch.utils.data.Dataset):
         self.remove_channels = config.remove_channels
 
         self.example_indices = self.build_example_indices(dev=dev, test=test)
-        self.input_encoder = self.build_input_encoder(config)
-        self.target_encoder = self.build_target_encoder(config)
+        if not dev and not test:
+            # dev and test sets should get encoders from the train set
+            self.input_encoder = self.build_input_encoder(config)
+            self.target_encoder = self.build_target_encoder(config)
 
     def __len__(self):
         return len(self.example_indices)
@@ -119,18 +121,37 @@ class EMGDataset(torch.utils.data.Dataset):
     def build_input_encoder(self, config):
         if self.input_encoder_cls is None:
             raise NotImplementedError()
+        datapoints = [self.load_utterance(*loc) for loc in self.example_indices]
+        inputs = [emg for emg, _ in datapoints]
         input_encoder = self.input_encoder_cls(config)
+        input_encoder.fit(inputs)
         return input_encoder
 
     def build_target_encoder(self, config):
-        datapoints = [self.load_utterance(*loc) for loc in self.example_indices]
-        targets = [target for _, target in datapoints]
         if self.target_encoder_cls is None:
             raise NotImplementedError()
+        datapoints = [self.load_utterance(*loc) for loc in self.example_indices]
+        targets = [target for _, target in datapoints]
         target_encoder = self.target_encoder_cls(config)
         target_encoder.fit(targets)
         return target_encoder
 
+    def set_encoding(self, test_set):
+        self.input_encoder = test_set.input_encoder
+        self.target_encoder = test_set.target_encoder
+
     @property
     def collate_fn(self):
         return self.input_encoder.collate_fn
+
+    @property
+    def input_dim(self):
+        if getattr(self, "input_encoder"):
+            return self.input_encoder.input_dim
+        return None
+
+    @property
+    def target_dim(self):
+        if getattr(self, "target_encoder"):
+            return self.target_encoder.target_dim
+        return None
