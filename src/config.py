@@ -41,7 +41,7 @@ def validate_config(config):
 def config_from_args(args):
     parser = argparse.ArgumentParser("Train EMG Model")
 
-    # Dataset filepaths
+    # Filepaths
     parser.add_argument(
         "--testset", type=str,
         default="data/testsets/testset_spotify.json"
@@ -49,6 +49,10 @@ def config_from_args(args):
     parser.add_argument(
         "--data", type=str,
         default="data/step_data/silent/"
+    )
+    parser.add_argument(
+        "--save_dir", type=str,
+        default="data/models/tmp/"
     )
 
     # Dataset hyperparameters

@@ -1,6 +1,8 @@
 import sys
 
 import torch
+import numpy as np
+from tqdm import tqdm
 
 from src.config import config_from_args
 from src.dataset import SingleFramePhraseDataset
@@ -51,6 +53,59 @@ def build_loss_fn(config):
     return loss_fn
 
 
+def evaluate(device, dataloader, model, loss_fn):
+    # TODO: Move to evaluate.py, add support for testset
+    losses = []
+    accuracies = []
+    model.eval()
+    with torch.no_grad():
+        for datapoint in dataloader:
+            inputs = datapoint["emg"].to(device)
+            labels = datapoint["text"].to(device)
+            out = model(inputs)
+            loss = loss_fn(out, labels)
+
+            _, pred = torch.max(out, dim=1)
+            acc = torch.sum(pred == labels) / labels.size()[0]
+            accuracies.append(acc.item())
+            losses.append(loss.item())
+    model.train()
+
+    total_loss = np.mean(losses)
+    total_acc = np.mean(accuracies)
+
+    return total_loss, total_acc
+
+
+def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
+    model.train()
+    for _ in range(config.epochs):
+        losses = []
+        accuracies = []
+        for datapoint in tqdm(train_loader):
+            inputs = datapoint["emg"].to(device)
+            labels = datapoint["text"].to(device)
+
+            opt.zero_grad()
+
+            out = model(inputs)
+            loss = loss_fn(out, labels)
+            loss.backward()
+            opt.step()
+
+            _, pred = torch.max(out, dim=1)
+            acc = torch.sum(pred == labels) / labels.size()[0]
+            accuracies.append(acc.item())
+            losses.append(loss.item())
+        model.save("model", config.save_dir)
+
+        total_loss = np.mean(losses)
+        total_acc = np.mean(accuracies)
+        val_loss, val_acc = evaluate(device, dev_loader, model, loss_fn)
+        print(f"Train Loss: {total_loss:.3f} | Train Accuracy: {total_acc:.3f}")
+        print(f"Dev Loss:   {val_loss:.3f} | Dev Accuracy:   {val_acc:.3f}")
+
+
 def main(args):
     config = config_from_args(args)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -60,11 +115,7 @@ def main(args):
     opt = build_optimizer(config, model)
     loss_fn = build_loss_fn(config)
 
-    train(train_loader, dev_loader, model, opt, loss_fn)
-
-
-def train(train_loader, dev_loader, model, opt, loss_fn):
-    pass
+    train(config, device, train_loader, dev_loader, model, opt, loss_fn)
 
 
 if __name__ == "__main__":

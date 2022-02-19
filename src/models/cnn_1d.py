@@ -70,7 +70,6 @@ class CNN1D(Model):
             flat_data = self.activation(flat_data)
 
         out = self.out(flat_data)
-        out = nn.functional.softmax(out, dim=1)
         return out
 
 
