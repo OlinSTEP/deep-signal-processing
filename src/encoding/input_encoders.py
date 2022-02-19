@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from torch import nn
+import torch
 
 
 class AbstractInputEncoder(ABC):
@@ -27,16 +27,37 @@ class BaseInputEncoder(AbstractInputEncoder):
         self.max_len = config.max_len
 
     def fit(self, inputs):
-        # if self.max_len = None:
-        #     # Get max sequence from dataset if not specified
-        #     self.max_len = max([i.shape[0] for i in inputs])
+        max_len = max([i.shape[0] for i in inputs])
+        if  max_len > self.max_len:
+            raise Exception(
+                "Sequence of length {max_len} exceeds max length"
+            )
         self.input_dim = (inputs[0].shape[1], self.max_len)
 
     def transform(self, emg_data):
         return emg_data
 
     def collate_fn(self, batch):
-        _, packed_batch = nn.utils.rnn.pad_packed_sequence(
-            batch, batch_first=True, total_length=self.max_len
+        batch_emg = [d["emg"] for d in batch]
+        batch_text = [d["text"] for d in batch]
+
+        # (batch_size, max_batch_len, n_channels)
+        packed_emg = torch.nn.utils.rnn.pad_sequence(
+            batch_emg, batch_first=True
         )
-        return packed_batch
+        # Add additional padding to reach self.max_len
+        # (batch_size, max_len, n_channels)
+        size = packed_emg.size()
+        missing = self.max_len - size[1]
+        padding = torch.zeros(size[0], missing, size[2])
+        packed_emg = torch.cat((packed_emg, padding), dim=1)
+        # (batch_size, n_channels, max_len) (CNN friendly format)
+        packed_emg = packed_emg.transpose(1, 2)
+
+        # (batch_size)
+        packed_text = torch.tensor(batch_text)
+
+        return {
+            "emg": packed_emg,
+            "text": packed_text,
+        }
