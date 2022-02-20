@@ -47,8 +47,8 @@ def config_from_args(args):
         default="data/testsets/testset_spotify.json"
     )
     parser.add_argument(
-        "--data", type=str,
-        default="data/step_data/silent/"
+        "--data", type=str, nargs="+",
+        default=["data/datasets/0216_data/silent"]
     )
     parser.add_argument(
         "--save_dir", type=str,
@@ -94,7 +94,7 @@ def config_from_args(args):
     )
     parser.add_argument(
         "--batch_size", type=int,
-        default=128
+        default=16
     )
 
     config = parser.parse_args(args)

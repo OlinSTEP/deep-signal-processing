@@ -63,7 +63,7 @@ class EMGDataset(torch.utils.data.Dataset):
             testset = testset_json['test']
 
         directories = []
-        for sd in self.config.data:
+        for sd in self.data:
             for session_dir in sorted(os.listdir(sd)):
                 directories.append(
                     EMGDirectory(len(directories), os.path.join(sd, session_dir))
@@ -124,7 +124,10 @@ class EMGDataset(torch.utils.data.Dataset):
     def build_input_encoder(self, config):
         if self.input_encoder_cls is None:
             raise NotImplementedError()
-        datapoints = [self.load_utterance(*loc) for loc in self.example_indices]
+        datapoints = [
+            self.load_utterance(dir_info.directory, idx)
+            for dir_info, idx in self.example_indices
+        ]
         inputs = [emg for emg, _ in datapoints]
         input_encoder = self.input_encoder_cls(config)
         input_encoder.fit(inputs)
@@ -133,7 +136,10 @@ class EMGDataset(torch.utils.data.Dataset):
     def build_target_encoder(self, config):
         if self.target_encoder_cls is None:
             raise NotImplementedError()
-        datapoints = [self.load_utterance(*loc) for loc in self.example_indices]
+        datapoints = [
+            self.load_utterance(dir_info.directory, idx)
+            for dir_info, idx in self.example_indices
+        ]
         targets = [target for _, target in datapoints]
         target_encoder = self.target_encoder_cls(config)
         target_encoder.fit(targets)

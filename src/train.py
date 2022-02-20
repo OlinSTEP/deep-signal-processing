@@ -1,3 +1,4 @@
+import os
 import sys
 
 import torch
@@ -38,6 +39,7 @@ def build_datasets(config, device):
 def build_model(config, dataset):
     # TODO: Add to model dir and add type selection
     model = CNN1D(dataset.input_dim, dataset.target_dim, config)
+    print("Model built.")
     return model
 
 
@@ -79,9 +81,10 @@ def evaluate(device, dataloader, model, loss_fn):
 
 def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
     model.train()
-    for _ in range(config.epochs):
+    for epoch in range(config.epochs):
         losses = []
         accuracies = []
+        print(f"Epoch {epoch}")
         for datapoint in tqdm(train_loader):
             inputs = datapoint["emg"].to(device)
             labels = datapoint["text"].to(device)
@@ -102,19 +105,22 @@ def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
         total_loss = np.mean(losses)
         total_acc = np.mean(accuracies)
         val_loss, val_acc = evaluate(device, dev_loader, model, loss_fn)
+
         print(f"Train Loss: {total_loss:.3f} | Train Accuracy: {total_acc:.3f}")
         print(f"Dev Loss:   {val_loss:.3f} | Dev Accuracy:   {val_acc:.3f}")
+        print()
 
 
 def main(args):
     config = config_from_args(args)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    train_set, train_loader, dev_loader = build_datasets(config)
+    train_set, train_loader, dev_loader = build_datasets(config, device)
     model = build_model(config, train_set).to(device)
     opt = build_optimizer(config, model)
     loss_fn = build_loss_fn(config)
 
+    print("Starting training...")
     train(config, device, train_loader, dev_loader, model, opt, loss_fn)
 
 
