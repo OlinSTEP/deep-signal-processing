@@ -65,7 +65,7 @@ def config_from_args(args):
     )
     parser.add_argument(
         "--data", type=str, nargs="+",
-        default=["data/datasets/0216_data/silent"]
+        default=["data/datasets/step_data/silent"]
     )
     parser.add_argument(
         "--save_dir", type=str,
