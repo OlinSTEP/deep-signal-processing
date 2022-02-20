@@ -111,7 +111,7 @@ def config_from_args(args):
     )
     parser.add_argument(
         "--batch_size", type=int,
-        default=16
+        default=32
     )
 
     config = parser.parse_args(args)

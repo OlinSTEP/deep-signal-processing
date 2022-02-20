@@ -58,6 +58,8 @@ def evaluate(device, dataloader, model, loss_fn):
     # TODO: Move to evaluate.py, add support for testset
     losses = []
     accuracies = []
+    all_labels = []
+    all_preds = []
     model.eval()
     with torch.no_grad():
         for datapoint in dataloader:
@@ -70,12 +72,20 @@ def evaluate(device, dataloader, model, loss_fn):
             acc = torch.sum(pred == labels) / labels.size()[0]
             accuracies.append(acc.item())
             losses.append(loss.item())
+            all_labels.extend(labels.tolist())
+            all_preds.extend(pred.tolist())
     model.train()
 
     total_loss = np.mean(losses)
     total_acc = np.mean(accuracies)
+    conf_matrix = wandb.plot.confusion_matrix(
+        y_true=all_labels,
+        preds=all_preds,
+        class_names=dataloader.dataset.target_encoder.target_labels,
+        title="Confusion Matrix",
+    )
 
-    return total_loss, total_acc
+    return total_loss, total_acc, conf_matrix
 
 
 def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
@@ -103,13 +113,16 @@ def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
 
         total_loss = np.mean(losses)
         total_acc = np.mean(accuracies)
-        val_loss, val_acc = evaluate(device, dev_loader, model, loss_fn)
+        val_loss, val_acc, conf_matrix = evaluate(
+            device, dev_loader, model, loss_fn
+        )
 
         wandb.log({
             "Train Loss": total_loss,
             "Train Acc": total_acc,
             "Val Loss": val_loss,
-            "Val Acc": val_acc
+            "Val Acc": val_acc,
+            "Confusion Matrix": conf_matrix
         })
 
         print(f"Train Loss: {total_loss:.3f} | Train Accuracy: {total_acc:.3f}")
