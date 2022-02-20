@@ -1,11 +1,11 @@
-import os
 import sys
 
+import wandb
 import torch
 import numpy as np
 from tqdm import tqdm
 
-from src.config import config_from_args
+from src.config import config_from_args, WANDB_EXCLUDE_KEYS
 from src.dataset import SingleFramePhraseDataset
 from src.models.cnn_1d import CNN1D
 
@@ -39,7 +39,6 @@ def build_datasets(config, device):
 def build_model(config, dataset):
     # TODO: Add to model dir and add type selection
     model = CNN1D(dataset.input_dim, dataset.target_dim, config)
-    print("Model built.")
     return model
 
 
@@ -84,7 +83,7 @@ def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
     for epoch in range(config.epochs):
         losses = []
         accuracies = []
-        print(f"Epoch {epoch}")
+        print(f"\nEpoch {epoch}:")
         for datapoint in tqdm(train_loader):
             inputs = datapoint["emg"].to(device)
             labels = datapoint["text"].to(device)
@@ -106,9 +105,15 @@ def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
         total_acc = np.mean(accuracies)
         val_loss, val_acc = evaluate(device, dev_loader, model, loss_fn)
 
+        wandb.log({
+            "Train Loss": total_loss,
+            "Train Acc": total_acc,
+            "Val Loss": val_loss,
+            "Val Acc": val_acc
+        })
+
         print(f"Train Loss: {total_loss:.3f} | Train Accuracy: {total_acc:.3f}")
         print(f"Dev Loss:   {val_loss:.3f} | Dev Accuracy:   {val_acc:.3f}")
-        print()
 
 
 def main(args):
@@ -119,6 +124,21 @@ def main(args):
     model = build_model(config, train_set).to(device)
     opt = build_optimizer(config, model)
     loss_fn = build_loss_fn(config)
+
+    wandb.init(
+        project="EMG Classification",
+        entity="step-emg",
+        config=config,
+        name=config.name,
+        group=config.group,
+        notes=config.notes,
+        config_exclude_keys=WANDB_EXCLUDE_KEYS
+    )
+    wandb.watch(
+        model,
+        criterion=loss_fn,
+        log_freq=(len(train_set) // config.batch_size) * (config.epochs // 10)
+    )
 
     print("Starting training...")
     train(config, device, train_loader, dev_loader, model, opt, loss_fn)

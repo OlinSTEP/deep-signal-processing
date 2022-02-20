@@ -1,6 +1,9 @@
 import argparse
 
 
+WANDB_EXCLUDE_KEYS = ["name", "group", "notes"]
+
+
 # PARSING TYPES
 
 def conv_params(s):
@@ -40,6 +43,20 @@ def validate_config(config):
 
 def config_from_args(args):
     parser = argparse.ArgumentParser("Train EMG Model")
+
+    # WandB
+    parser.add_argument(
+        "--name", type=str,
+        default=None
+    )
+    parser.add_argument(
+        "--group", type=str,
+        default=None
+    )
+    parser.add_argument(
+        "--notes", type=str,
+        default=None
+    )
 
     # Filepaths
     parser.add_argument(
