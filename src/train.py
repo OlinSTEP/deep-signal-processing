@@ -4,6 +4,7 @@ import wandb
 import torch
 import numpy as np
 from tqdm import tqdm
+from sklearn.metrics import precision_recall_fscore_support
 
 from src.config import config_from_args, WANDB_EXCLUDE_KEYS
 from src.dataset import SingleFramePhraseDataset
@@ -54,6 +55,58 @@ def build_loss_fn(config):
     return loss_fn
 
 
+def calc_metrics(losses, accuracies, labels=None, preds=None,
+                 target_labels=None, prefix=""):
+    if prefix:
+        prefix = prefix.strip()
+        prefix += " "
+
+    metrics = {}
+    metrics[prefix + "Loss"] = np.mean(losses)
+    metrics[prefix + "Acc"] = np.mean(accuracies)
+
+    if not labels or not preds or not target_labels:
+        return metrics
+
+    # To avoid loggign too many metrics, these metrics are not calculated for
+    # train data, and therefore do not have a prefix attached to them
+    metrics["Confusion Matrix"] = wandb.plot.confusion_matrix(
+        y_true=labels,
+        preds=preds,
+        class_names=target_labels,
+        title="Confusion Matrix",
+    )
+
+    # sklearn wants idxs as labels and preds are idxs
+    target_labels = [i for i in range(len(target_labels))]
+
+    micro_prec, micro_recall, micro_f1, _ = precision_recall_fscore_support(
+        labels, preds,
+        average="micro", zero_division=0, labels=target_labels
+    )
+    metrics["Micro Precision"] = micro_prec
+    metrics["Micro Recall"] = micro_recall
+    metrics["Micro F1"] = micro_f1
+
+    macro_prec, macro_recall, macro_f1, _ = precision_recall_fscore_support(
+        labels, preds,
+        average="macro", zero_division=0, labels=target_labels
+    )
+    metrics["Macro Precision"] = macro_prec
+    metrics["Macro Recall"] = macro_recall
+    metrics["Macro F1"] = macro_f1
+
+    weighted_prec, weighted_recall, weighted_f1, _ = precision_recall_fscore_support(
+        labels, preds,
+        average="weighted", zero_division=0, labels=target_labels
+    )
+    metrics["Weighted Precision"] = weighted_prec
+    metrics["Weighted Recall"] = weighted_recall
+    metrics["Weighted F1"] = weighted_f1
+
+    return metrics
+
+
 def evaluate(device, dataloader, model, loss_fn):
     # TODO: Move to evaluate.py, add support for testset
     losses = []
@@ -76,16 +129,12 @@ def evaluate(device, dataloader, model, loss_fn):
             all_preds.extend(pred.tolist())
     model.train()
 
-    total_loss = np.mean(losses)
-    total_acc = np.mean(accuracies)
-    conf_matrix = wandb.plot.confusion_matrix(
-        y_true=all_labels,
-        preds=all_preds,
-        class_names=dataloader.dataset.target_encoder.target_labels,
-        title="Confusion Matrix",
+    return calc_metrics(
+        losses, accuracies,
+        labels=all_labels, preds=all_preds,
+        target_labels=dataloader.dataset.target_encoder.target_labels,
+        prefix="Val"
     )
-
-    return total_loss, total_acc, conf_matrix
 
 
 def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
@@ -111,28 +160,26 @@ def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
             losses.append(loss.item())
         model.save("model", config.save_dir)
 
-        total_loss = np.mean(losses)
-        total_acc = np.mean(accuracies)
-        val_loss, val_acc, conf_matrix = evaluate(
-            device, dev_loader, model, loss_fn
+        metrics = {}
+        metrics.update(calc_metrics(losses, accuracies, prefix="Train"))
+        metrics.update(evaluate(device, dev_loader, model, loss_fn))
+        wandb.log(metrics)
+
+        print(
+            f"Train Loss: {metrics['Train Loss']:.3f} | "
+            f"Train Accuracy: {metrics['Train Acc']:.3f}"
         )
-
-        wandb.log({
-            "Train Loss": total_loss,
-            "Train Acc": total_acc,
-            "Val Loss": val_loss,
-            "Val Acc": val_acc,
-            "Confusion Matrix": conf_matrix
-        })
-
-        print(f"Train Loss: {total_loss:.3f} | Train Accuracy: {total_acc:.3f}")
-        print(f"Dev Loss:   {val_loss:.3f} | Dev Accuracy:   {val_acc:.3f}")
+        print(
+            f"Dev Loss:   {metrics['Val Loss']:.3f} | "
+            f"Dev Accuracy:   {metrics['Val Acc']:.3f}"
+        )
 
 
 def main(args):
     config = config_from_args(args)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    print("Processing data...")
     train_set, train_loader, dev_loader = build_datasets(config, device)
     model = build_model(config, train_set).to(device)
     opt = build_optimizer(config, model)
