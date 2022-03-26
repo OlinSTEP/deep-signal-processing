@@ -4,8 +4,6 @@ from abc import ABC, abstractmethod
 class AbstractTargetEncoder(ABC):
     def __init__(self):
         self.target_labels = None
-        self.target_to_idx = None
-        self.idx_to_target = None
         super().__init__()
 
     @abstractmethod
@@ -27,17 +25,23 @@ class AbstractTargetEncoder(ABC):
         return None
 
 
-class PhraseTargetEncoder(AbstractTargetEncoder):
+class ClassificationEncoder(AbstractTargetEncoder):
     def __init__(self, config):
         super().__init__()
+        self.target_to_idx = None
+        self.idx_to_target = None
 
-    def fit(self, phrases):
-        self.target_labels = sorted(list(set(phrases)))
+    def fit(self, targets):
+        self.target_labels = sorted(list(set(targets)))
         self.target_to_idx = {p: i for i, p in enumerate(self.target_labels)}
         self.idx_to_target = {i: p for i, p in enumerate(self.target_labels)}
 
-    def transform(self, phrase):
-        return self.target_to_idx[phrase]
+    def transform(self, target):
+        if self.target_to_idx is None:
+            raise Exception("Target encoder must be fit")
+        return self.target_to_idx[target]
 
     def inverse_transform(self, idx):
+        if self.idx_to_target is None:
+            raise Exception("Target encoder must be fit")
         return self.idx_to_target[idx]
