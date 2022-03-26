@@ -42,7 +42,7 @@ def validate_config(config):
 
 
 def config_from_args(args):
-    parser = argparse.ArgumentParser("Train EMG Model")
+    parser = argparse.ArgumentParser("Train Signal Processing Model")
 
     # WandB
     parser.add_argument(
@@ -115,6 +115,7 @@ def config_from_args(args):
     )
 
     config = parser.parse_args(args)
+
     validate_config(config)
 
     return config

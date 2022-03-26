@@ -35,12 +35,6 @@ class Dataset(torch.utils.data.Dataset):
         return self.loader.len
 
     def __getitem__(self, i):
-        if self.input_encoder is None or self.target_encoder is None:
-            raise Exception(
-                "For dev and test sets, set_encoding() must be called to copy "
-                "encoders from the train set."
-            )
-
         input_, target = self.loader.load(i)
         filtered_input = self.filter.filter(input_)
         processed_input = self.input_encoder.transform(filtered_input)

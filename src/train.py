@@ -72,8 +72,8 @@ def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
         accuracies = []
         print(f"\nEpoch {epoch}:")
         for datapoint in tqdm(train_loader):
-            inputs = datapoint["emg"].to(device)
-            labels = datapoint["text"].to(device)
+            inputs = datapoint["input"].to(device)
+            labels = datapoint["target"].to(device)
 
             opt.zero_grad()
 
