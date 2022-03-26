@@ -89,4 +89,5 @@ class Dataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
+    # DO TESTS HERE
     pass

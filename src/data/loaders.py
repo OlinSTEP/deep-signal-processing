@@ -40,6 +40,9 @@ class AudioLoader(AbstractLoader):
     def load(self, index):
         pass
 
+    def build_splits(self):
+        pass
+
     @property
     def len(self):
         pass
@@ -50,6 +53,9 @@ class GestureLoader(AbstractLoader):
         super().__init__(config)
 
     def load(self, index):
+        pass
+
+    def build_splits(self):
         pass
 
     @property
