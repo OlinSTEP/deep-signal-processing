@@ -17,7 +17,7 @@ class AbstractFilter(ABC):
 
 
 class MicFilter(AbstractFilter):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
 
     def filter(self, data):
@@ -25,7 +25,7 @@ class MicFilter(AbstractFilter):
 
 
 class ThroatMicFilter(AbstractFilter):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
 
     def filter(self, data):
@@ -33,7 +33,7 @@ class ThroatMicFilter(AbstractFilter):
 
 
 class GestureFilter(AbstractFilter):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
 
     def filter(self, data):

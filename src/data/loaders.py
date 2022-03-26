@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 
 
 class AbstractLoader(ABC):
-    def __init__(self):
+    def __init__(self, config):
+        self.data_path = config.data
         super().__init__()
 
     @abstractmethod
@@ -21,8 +22,8 @@ class AbstractLoader(ABC):
 
 
 class AudioLoader(AbstractLoader):
-    def __init__(self, data_path):
-        super().__init__()
+    def __init__(self, config):
+        super().__init__(config)
 
     def load(self, index):
         pass
@@ -33,8 +34,8 @@ class AudioLoader(AbstractLoader):
 
 
 class GestureLoader(AbstractLoader):
-    def __init__(self, data_path):
-        super().__init__()
+    def __init__(self, config):
+        super().__init__(config)
 
     def load(self, index):
         pass
