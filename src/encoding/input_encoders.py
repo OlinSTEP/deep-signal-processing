@@ -20,48 +20,54 @@ class AbstractInputEncoder(ABC):
     def collate_fn(self, batch):
         pass
 
+    @property
+    def input_dim(self):
+        if self._input_dim is None:
+            raise NotImplementedError
+        return self._input_dim
 
-class BaseInputEncoder(AbstractInputEncoder):
+
+class PaddedSequenceEncoder(AbstractInputEncoder):
     def __init__(self, config):
         super().__init__()
         self.max_len = config.max_len
 
     def fit(self, inputs):
         max_len = max([i.shape[0] for i in inputs])
-        if  max_len > self.max_len:
+        if max_len > self.max_len:
             raise Exception(
                 f"Sequence of length {max_len} exceeds max length"
             )
-        self.input_dim = (inputs[0].shape[1], self.max_len)
+        self._input_dim = (inputs[0].shape[1], self.max_len)
 
-    def transform(self, emg_data):
-        return emg_data
+    def transform(self, data):
+        return data
 
     def collate_fn(self, batch):
-        batch_emg = [torch.tensor(d["emg"]) for d in batch]
-        batch_text = [d["text"] for d in batch]
+        batch_input = [torch.tensor(d["input"]) for d in batch]
+        batch_target = [d["target"] for d in batch]
 
         # (batch_size, max_batch_len, n_channels)
-        packed_emg = torch.nn.utils.rnn.pad_sequence(
-            batch_emg, batch_first=True
+        packed_input = torch.nn.utils.rnn.pad_sequence(
+            batch_input, batch_first=True
         )
         # Add additional padding to reach self.max_len
         # (batch_size, max_len, n_channels)
-        size = packed_emg.size()
+        size = packed_input.size()
         missing = self.max_len - size[1]
-        if  missing < 0:
+        if missing < 0:
             raise Exception(
                 f"Sequence of length {size[1]} exceeds max length"
             )
         padding = torch.zeros(size[0], missing, size[2])
-        packed_emg = torch.cat((packed_emg, padding), dim=1)
+        packed_input = torch.cat((packed_input, padding), dim=1)
         # (batch_size, n_channels, max_len) (CNN friendly format)
-        packed_emg = packed_emg.transpose(1, 2)
+        packed_input = packed_input.transpose(1, 2)
 
         # (batch_size)
-        packed_text = torch.tensor(batch_text)
+        packed_target = torch.tensor(batch_target)
 
         return {
-            "emg": packed_emg,
-            "text": packed_text,
+            "input": packed_input,
+            "target": packed_target,
         }

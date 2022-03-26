@@ -1,7 +1,7 @@
 from src.data.dataset import EMGDataset
-from src.encoding.input_encoders import BaseInputEncoder
+from src.encoding.input_encoders import PaddedSequenceEncoder
 from src.encoding.target_encoders import PhraseTargetEncoder
 
 class SingleFramePhraseDataset(EMGDataset):
-    input_encoder_cls = BaseInputEncoder
+    input_encoder_cls = PaddedSequenceEncoder
     target_encoder_cls = PhraseTargetEncoder
