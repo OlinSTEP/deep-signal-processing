@@ -2,16 +2,20 @@ from abc import ABC, abstractmethod
 
 
 class AbstractFilter(ABC):
+    """
+    Filtering base class
+
+    Filters take in raw data and performs processing on them
+    """
     def __init__(self):
         super().__init__()
 
     @abstractmethod
-    def filter(self, data, sample_freq):
+    def filter(self, data):
         """
         Filters the passed data
 
-        :param data np.array: Numpy array of shape (num_channels, time)
-        :param data int: Sample frequency to run filter with
+        :param data np.array: Numpy array of single datapoint
         """
         pass
 

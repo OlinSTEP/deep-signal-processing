@@ -2,6 +2,11 @@ from abc import ABC, abstractmethod
 
 
 class AbstractLoader(ABC):
+    """
+    Loader base class
+
+    Loaders load the raw data of a specific format
+    """
     def __init__(self, config, dev=False, test=False):
         self.data_path = config.data
         self.dev = dev

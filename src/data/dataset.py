@@ -2,6 +2,14 @@ import torch
 
 
 class Dataset(torch.utils.data.Dataset):
+    """
+    A general Dataset class.
+
+    Primarily serves as a wrapper to call various data loading classes as a
+    complete data pipeline. Requires all data loading class attributes to be set
+    in classes extending this one, see src/data/__init__ for examples.
+    """
+
     loader_cls = None
     filter_cls = None
     input_encoder_cls = None
