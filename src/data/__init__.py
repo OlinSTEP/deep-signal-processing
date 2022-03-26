@@ -1,4 +1,4 @@
-from src.dataset.emg_dataset import EMGDataset
+from src.data.dataset import EMGDataset
 from src.encoding.input_encoders import BaseInputEncoder
 from src.encoding.target_encoders import PhraseTargetEncoder
 

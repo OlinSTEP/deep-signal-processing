@@ -7,7 +7,7 @@ from tqdm import tqdm
 from sklearn.metrics import precision_recall_fscore_support
 
 from src.config import config_from_args, WANDB_EXCLUDE_KEYS
-from src.dataset import SingleFramePhraseDataset
+from src.data import SingleFramePhraseDataset
 from src.models.cnn_1d import CNN1D
 
 
