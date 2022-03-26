@@ -15,7 +15,7 @@ class Dataset(torch.utils.data.Dataset):
     input_encoder_cls = None
     target_encoder_cls = None
 
-    def __init__(self, config, dev=False, test=False):
+    def __init__(self, config):
         if (
             self.loader_cls is None
             or self.filter_cls is None
@@ -26,14 +26,10 @@ class Dataset(torch.utils.data.Dataset):
                 "Data loading classes not set! Use a class that extends Dataset"
             )
 
-        self.loader = self.build_loader(config, dev=dev, test=test)
+        self.loader = self.build_loader(config)
         self.filter = self.build_filter(config)
-
-        # Dev and test sets should not build encoders
-        # Instead, set_encoding() should be used to take encoders from train set
-        if not dev and not test:
-            self.input_encoder = self.build_input_encoder(config)
-            self.target_encoder = self.build_target_encoder(config)
+        self.input_encoder = self.build_input_encoder(config)
+        self.target_encoder = self.build_target_encoder(config)
 
     def __len__(self):
         return self.loader.len
@@ -57,8 +53,8 @@ class Dataset(torch.utils.data.Dataset):
             'target': processed_target
         }
 
-    def build_loader(self, config, dev=False, test=False):
-        return self.loader_cls(config, dev=dev, test=test)
+    def build_loader(self, config):
+        return self.loader_cls(config)
 
     def build_filter(self, config):
         return self.filter_cls(config)
@@ -77,9 +73,9 @@ class Dataset(torch.utils.data.Dataset):
         target_encoder.fit(targets)
         return target_encoder
 
-    def set_encoding(self, test_set):
-        self.input_encoder = test_set.input_encoder
-        self.target_encoder = test_set.target_encoder
+    @property
+    def build_splits(self):
+        return self.loader.build_splits
 
     @property
     def collate_fn(self):

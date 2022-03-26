@@ -7,10 +7,8 @@ class AbstractLoader(ABC):
 
     Loaders load the raw data of a specific format
     """
-    def __init__(self, config, dev=False, test=False):
+    def __init__(self, config):
         self.data_path = config.data
-        self.dev = dev
-        self.test = test
         super().__init__()
 
     @abstractmethod
@@ -22,6 +20,13 @@ class AbstractLoader(ABC):
         """
         pass
 
+    @abstractmethod
+    def build_splits(self):
+        """
+        Returns train / dev / test split indexs
+        """
+        pass
+
     @property
     @abstractmethod
     def len(self):
@@ -29,8 +34,8 @@ class AbstractLoader(ABC):
 
 
 class AudioLoader(AbstractLoader):
-    def __init__(self, config, dev=False, test=False):
-        super().__init__(config, dev=dev, test=test)
+    def __init__(self, config):
+        super().__init__(config)
 
     def load(self, index):
         pass
@@ -41,8 +46,8 @@ class AudioLoader(AbstractLoader):
 
 
 class GestureLoader(AbstractLoader):
-    def __init__(self, config, dev=False, test=False):
-        super().__init__(config, dev=dev, test=test)
+    def __init__(self, config):
+        super().__init__(config)
 
     def load(self, index):
         pass

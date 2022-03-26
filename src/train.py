@@ -12,9 +12,12 @@ from src.evaluate import calc_metrics, evaluate
 
 def build_datasets(config, device):
     # TODO: Add to dataset dir and add type selection
-    train_set = MicClassificationDataset(config, dev=False, test=False)
-    dev_set = MicClassificationDataset(config, dev=True, test=False)
-    dev_set.set_encoding(train_set)
+    dataset = MicClassificationDataset(config)
+
+    train_idx, dev_idx, test_idx = dataset.build_splits()
+    train_set = torch.utils.data.Subset(dataset, train_idx)
+    dev_set = torch.utils.data.Subset(dataset, dev_idx)
+    test_set = torch.utils.data.Subset(dataset, test_idx)
 
     train_loader = torch.utils.data.DataLoader(
         train_set,
@@ -32,8 +35,16 @@ def build_datasets(config, device):
         pin_memory=(device == "cuda"),
         collate_fn=dev_set.collate_fn
     )
+    test_loader = torch.utils.data.DataLoader(
+        test_set,
+        shuffle=False,
+        batch_size=1,
+        num_workers=1,
+        pin_memory=(device == "cuda"),
+        collate_fn=test_set.collate_fn
+    )
 
-    return train_set, train_loader, dev_loader
+    return dataset, train_loader, dev_loader, test_loader
 
 
 def build_model(config, dataset):
@@ -97,8 +108,8 @@ def main(args):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     print("Processing data...")
-    train_set, train_loader, dev_loader = build_datasets(config, device)
-    model = build_model(config, train_set).to(device)
+    dataset, train_loader, dev_loader, _ = build_datasets(config, device)
+    model = build_model(config, dataset).to(device)
     opt = build_optimizer(config, model)
     loss_fn = build_loss_fn(config)
 
@@ -114,7 +125,7 @@ def main(args):
     wandb.watch(
         model,
         criterion=loss_fn,
-        log_freq=(len(train_set) // config.batch_size) * (config.epochs // 10)
+        log_freq=(len(dataset) // config.batch_size) * (config.epochs // 10)
     )
 
     print("Starting training...")
