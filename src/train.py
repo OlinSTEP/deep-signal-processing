@@ -7,22 +7,22 @@ from tqdm import tqdm
 from sklearn.metrics import precision_recall_fscore_support
 
 from src.config import config_from_args, WANDB_EXCLUDE_KEYS
-from src.data import SingleFramePhraseDataset
+from src.data import MicClassificationDataset
 from src.models.cnn_1d import CNN1D
 
 
 def build_datasets(config, device):
     # TODO: Add to dataset dir and add type selection
-    train_set = SingleFramePhraseDataset(config, dev=False, test=False)
-    dev_set = SingleFramePhraseDataset(config, dev=True, test=False)
+    train_set = MicClassificationDataset(config, dev=False, test=False)
+    dev_set = MicClassificationDataset(config, dev=True, test=False)
     dev_set.set_encoding(train_set)
 
     train_loader = torch.utils.data.DataLoader(
         train_set,
         shuffle=True,
         batch_size=config.batch_size,
-        num_workers=(8 if device=="cuda" else 0),
-        pin_memory=(device=="cuda"),
+        num_workers=(8 if device == "cuda" else 0),
+        pin_memory=(device == "cuda"),
         collate_fn=train_set.collate_fn
     )
     dev_loader = torch.utils.data.DataLoader(
@@ -30,7 +30,7 @@ def build_datasets(config, device):
         shuffle=False,
         batch_size=1,
         num_workers=1,
-        pin_memory=(device=="cuda"),
+        pin_memory=(device == "cuda"),
         collate_fn=dev_set.collate_fn
     )
 
@@ -186,8 +186,8 @@ def main(args):
     loss_fn = build_loss_fn(config)
 
     wandb.init(
-        project="EMG Classification",
-        entity="step-emg",
+        project="STEP Signal Processing",
+        entity="step-signal-processing",
         config=config,
         name=config.name,
         group=config.group,

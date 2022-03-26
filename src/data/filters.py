@@ -32,6 +32,14 @@ class ThroatMicFilter(AbstractFilter):
         pass
 
 
+class BothMicFilter(AbstractFilter):
+    def __init__(self, config):
+        super().__init__()
+
+    def filter(self, data):
+        pass
+
+
 class GestureFilter(AbstractFilter):
     def __init__(self, config):
         super().__init__()
