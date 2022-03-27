@@ -1,0 +1,4 @@
+# Reserve folder for storing data directories
+# We should never check in data
+*
+!.gitignore
