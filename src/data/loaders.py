@@ -1,5 +1,10 @@
 from abc import ABC, abstractmethod
 
+import os
+
+import pickle
+import numpy as np
+
 
 class AbstractLoader(ABC):
     """
@@ -14,7 +19,7 @@ class AbstractLoader(ABC):
     @abstractmethod
     def load(self, index):
         """
-        Loads a single datapoint from the disk.
+        Loads a single datapoint from the disk in (time, channels) format
 
         :param index int: Index of datapoint to load
         """
@@ -37,15 +42,31 @@ class AudioLoader(AbstractLoader):
     def __init__(self, config):
         super().__init__(config)
 
+        session_dirs = [
+            os.path.join(self.data_path, fn)
+            for fn in os.listdir(self.data_path)
+        ]
+
+        self.files = []
+        for session_dir in session_dirs:
+            for file_name in os.listdir(session_dir):
+                file_path = os.path.join(session_dir, file_name)
+                self.files.append(file_path)
+
     def load(self, index):
-        pass
+        file_path = self.files[index]
+        with open(file_path, "rb") as f:
+            data_dict = pickle.load(f)
+        input_ = np.asarray(list(zip(data_dict["reg"], data_dict["throat"])))
+        target = data_dict["target"]
+        return input_, target
 
     def build_splits(self):
         pass
 
     @property
     def len(self):
-        pass
+        return len(self.files)
 
 
 class GestureLoader(AbstractLoader):

@@ -24,6 +24,7 @@ class AbstractInputEncoder(ABC):
         model building.
 
         :param inputs list[np.array]: List of input arrays, all input datapoints
+            each in (time, channels) format
         """
         pass
 
@@ -32,7 +33,8 @@ class AbstractInputEncoder(ABC):
         """
         Transform the data into a format the model can consume
 
-        :param data np.array: Numpy array of single datapoint
+        :param data np.array: Numpy array of single datapoint in
+            (time, channels) format
         """
         pass
 
