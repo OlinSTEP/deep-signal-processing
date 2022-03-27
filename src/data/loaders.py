@@ -4,6 +4,10 @@ import os
 
 import pickle
 import numpy as np
+from sklearn.model_selection import train_test_split
+
+
+SEED = 42
 
 
 class AbstractLoader(ABC):
@@ -30,13 +34,15 @@ class AbstractLoader(ABC):
     @abstractmethod
     def build_splits(self):
         """
-        Returns train / dev / test split indexs
+        Builds train / dev / test split indexs
+
+        :returns: Tuple of (train_idxs, dev_idxs, train_idxs), where each value
+            is a list of idxs that can be passed to load()
         """
         pass
 
-    @property
     @abstractmethod
-    def len(self):
+    def __len__(self):
         pass
 
 
@@ -64,10 +70,30 @@ class AudioLoader(AbstractLoader):
         return input_, target
 
     def build_splits(self):
-        pass
+        datapoints = (self.load(i) for i in range(len(self)))
+        targets = [target for _, target in datapoints]
 
-    @property
-    def len(self):
+        # 70% / 15% / 15% split
+        # Stratified to guarantee reasonable class distributions
+        train_idxs, dev_test_idxs, _, dev_test_targets = train_test_split(
+            list(range(len(self))),
+            targets,
+            test_size=0.3,
+            random_state=SEED,
+            shuffle=True,
+            stratify=targets
+        )
+        dev_idxs, test_idxs = train_test_split(
+            dev_test_idxs,
+            test_size=0.5,
+            random_state=SEED,
+            shuffle=True,
+            stratify=dev_test_targets,
+        )
+
+        return train_idxs, dev_idxs, test_idxs
+
+    def __len__(self):
         return len(self.files)
 
 
@@ -81,6 +107,5 @@ class GestureLoader(AbstractLoader):
     def build_splits(self):
         pass
 
-    @property
-    def len(self):
+    def __len_(self):
         pass

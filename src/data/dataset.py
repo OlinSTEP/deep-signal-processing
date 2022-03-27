@@ -32,7 +32,7 @@ class Dataset(torch.utils.data.Dataset):
         self.target_encoder = self.build_target_encoder(config)
 
     def __len__(self):
-        return self.loader.len
+        return len(self.loader)
 
     def __getitem__(self, i):
         input_, target = self.loader.load(i)
@@ -67,7 +67,7 @@ class Dataset(torch.utils.data.Dataset):
         return input_encoder
 
     def build_target_encoder(self, config):
-        datapoints = [self.loader.load(i) for i in range(len(self))]
+        datapoints = (self.loader.load(i) for i in range(len(self)))
         targets = [target for _, target in datapoints]
         target_encoder = self.target_encoder_cls(config)
         target_encoder.fit(targets)
