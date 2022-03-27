@@ -54,10 +54,16 @@ class Dataset(torch.utils.data.Dataset):
         return self.filter_cls(config)
 
     def build_input_encoder(self, config):
-        datapoints = [self.loader.load(i) for i in range(len(self))]
-        inputs = [input_ for input_, _ in datapoints]
+        # Generator so we don't have to load all inputs into memory
+        # input_encoder can load all inputs at its discretion
+        def generator():
+            for i in range(len(self)):
+                input_, _ = self.loader.load(i)
+                yield input_
+
         input_encoder = self.input_encoder_cls(config)
-        input_encoder.fit(inputs)
+        input_encoder.fit(generator())
+
         return input_encoder
 
     def build_target_encoder(self, config):
@@ -67,9 +73,12 @@ class Dataset(torch.utils.data.Dataset):
         target_encoder.fit(targets)
         return target_encoder
 
-    @property
-    def build_splits(self):
-        return self.loader.build_splits
+    def split(self):
+        train_idx, dev_idx, test_idx = self.loader.build_splits()
+        train_set = torch.utils.data.Subset(self, train_idx)
+        dev_set = torch.utils.data.Subset(self, dev_idx)
+        test_set = torch.utils.data.Subset(self, test_idx)
+        return train_set, dev_set, test_set
 
     @property
     def collate_fn(self):

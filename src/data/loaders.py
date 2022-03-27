@@ -19,9 +19,11 @@ class AbstractLoader(ABC):
     @abstractmethod
     def load(self, index):
         """
-        Loads a single datapoint from the disk in (time, channels) format
+        Loads a single datapoint from the disk
 
         :param index int: Index of datapoint to load
+        :returns: Tuple of (input_data, target). Input data is a numpy array in
+            (time, channel) form
         """
         pass
 
