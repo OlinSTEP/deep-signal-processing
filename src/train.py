@@ -110,8 +110,8 @@ def main(args):
     loss_fn = build_loss_fn(config)
 
     wandb.init(
-        project="STEP Signal Processing",
-        entity="step-signal-processing",
+        project="Audio Signal Processing",
+        entity="step-emg",
         config=config,
         name=config.name,
         group=config.group,

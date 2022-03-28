@@ -11,7 +11,7 @@ class AbstractInputEncoder(ABC):
     consumption by a model.
     """
     def __init__(self):
-        self.input_dim = None
+        self._input_dim = None
         super().__init__()
 
     @abstractmethod
@@ -65,11 +65,11 @@ class PaddedSequenceEncoder(AbstractInputEncoder):
         self.max_len = config.max_len
 
     def fit(self, inputs):
-        max_len = max([i.shape[0] for i in inputs])
-        if max_len > self.max_len:
-            raise Exception(
-                f"Sequence of length {max_len} exceeds max length"
-            )
+        for i in inputs:
+            if i.shape[0] > self.max_len:
+                raise Exception(
+                    f"Sequence of length {i.shape[0]} exceeds max length"
+                )
         self._input_dim = (inputs[0].shape[1], self.max_len)
 
     def transform(self, data):

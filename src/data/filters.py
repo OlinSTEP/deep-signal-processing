@@ -25,7 +25,7 @@ class MicFilter(AbstractFilter):
         super().__init__()
 
     def filter(self, data):
-        pass
+        return data
 
 
 class ThroatMicFilter(AbstractFilter):
