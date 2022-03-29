@@ -2,7 +2,6 @@ import os
 import re
 import sys
 import json
-import pickle
 import argparse
 
 from functools import partial
@@ -10,6 +9,7 @@ from multiprocessing import Pool, cpu_count
 
 import pyxdf
 import numpy as np
+import scipy.io.wavfile
 
 
 REG_CHANNEL = 0
@@ -61,12 +61,15 @@ def load_streams(file_path):
     print(f"Loading {file_path}...")
     streams, _ = pyxdf.load_xdf(file_path)
 
+    print("Processing...")
     marker_list, idx_list = build_marker_list(streams)
     reg_data = split_stream(streams[REG_CHANNEL], marker_list)
+    reg_sample_rate = streams[REG_CHANNEL]["info"]["nominal_srate"][0]
     throat_data = split_stream(streams[THROAT_CHANNEL], marker_list)
+    throat_sample_rate = streams[THROAT_CHANNEL]["info"]["nominal_srate"][0]
 
     all_data = [
-        {"reg": r, "throat": t, "target_idx": i}
+        {"reg": (r, reg_sample_rate), "throat": (t, throat_sample_rate), "target_idx": i}
         for r, t, i in zip(reg_data, throat_data, idx_list)
     ]
 
@@ -90,20 +93,38 @@ def load_targets(file_path):
     return idx, target
 
 
+def save_datapoint(save_dir, i, datapoint):
+    print(f"Writing {os.path.join(save_dir, str(i))}...")
+
+    file_path = os.path.join(save_dir, f"{i}_info.json")
+    save_dict = {"target": datapoint["target"]}
+    with open(file_path, "w") as f:
+        json.dump(save_dict, f)
+    print(f"  Wrote {file_path}")
+
+    reg_array, reg_sample_rate = datapoint["reg"]
+    file_path = os.path.join(save_dir, f"{i}_reg_audio.wav")
+    scipy.io.wavfile.write(
+        file_path,
+        int(reg_sample_rate),
+        reg_array
+    )
+    print(f"  Wrote {file_path}")
+
+    throat_array, throat_sample_rate = datapoint["throat"]
+    file_path = os.path.join(save_dir, f"{i}_throat_audio.wav")
+    scipy.io.wavfile.write(
+        file_path,
+        int(throat_sample_rate),
+        throat_array
+    )
+    print(f"  Wrote {file_path}")
+
+
 def save_datapoints(save_dir, all_data):
     os.makedirs(save_dir, exist_ok=True)
-
     for i, data_dict in enumerate(all_data):
-        file_name = str(i) + ".pkl"
-        file_path = os.path.join(save_dir, file_name)
-        print(f"Writing {file_path}...")
-
-        # Convert numpy arrays to lists for serialization
-        data_dict["reg"] = data_dict["reg"].tolist()
-        data_dict["throat"] = data_dict["throat"].tolist()
-
-        with open(file_path, "wb") as f:
-            pickle.dump(data_dict, f)
+        save_datapoint(save_dir, i, data_dict)
 
 
 def process_session_dir(save_dir, session_dir):
@@ -130,6 +151,7 @@ def process_session_dir(save_dir, session_dir):
 
     session_save_dir = os.path.join(save_dir, os.path.basename(session_dir))
     save_datapoints(session_save_dir, all_data)
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser('Process Audio Data')
