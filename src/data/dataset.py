@@ -11,14 +11,12 @@ class Dataset(torch.utils.data.Dataset):
     """
 
     loader_cls = None
-    filter_cls = None
     input_encoder_cls = None
     target_encoder_cls = None
 
     def __init__(self, config):
         if (
             self.loader_cls is None
-            or self.filter_cls is None
             or self.input_encoder_cls is None
             or self.target_encoder_cls is None
         ):
@@ -27,7 +25,6 @@ class Dataset(torch.utils.data.Dataset):
             )
 
         self.loader = self.build_loader(config)
-        self.filter = self.build_filter(config)
         self.input_encoder = self.build_input_encoder(config)
         self.target_encoder = self.build_target_encoder(config)
 
@@ -36,8 +33,7 @@ class Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, i):
         input_, target = self.loader.load(i)
-        filtered_input = self.filter.filter(input_)
-        processed_input = self.input_encoder.transform(filtered_input)
+        processed_input = self.input_encoder.transform(input_)
         processed_target = self.target_encoder.transform(target)
 
         return {
@@ -49,9 +45,6 @@ class Dataset(torch.utils.data.Dataset):
 
     def build_loader(self, config):
         return self.loader_cls(config)
-
-    def build_filter(self, config):
-        return self.filter_cls(config)
 
     def build_input_encoder(self, config):
         # Generator so we don't have to load all inputs into memory
