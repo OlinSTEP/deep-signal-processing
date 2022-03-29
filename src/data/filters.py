@@ -63,7 +63,6 @@ class MicFilter(AbstractFilter):
             x = self.remove_drift(x, fs)
             result[:,i] = x
         return result
-            
 
 
 class ThroatMicFilter(AbstractFilter):

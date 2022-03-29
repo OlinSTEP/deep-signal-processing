@@ -60,12 +60,8 @@ def config_from_args(args):
 
     # Filepaths
     parser.add_argument(
-        "--testset", type=str,
-        default="data/testsets/testset_spotify.json"
-    )
-    parser.add_argument(
-        "--data", type=str, nargs="+",
-        default=["data/datasets/step_data/silent"]
+        "--data", type=str,
+        default="data/processed_data/SpringBreakAudio"
     )
     parser.add_argument(
         "--save_dir", type=str,
@@ -76,10 +72,6 @@ def config_from_args(args):
     parser.add_argument(
         "--max_len", type=int,
         default=1024
-    )
-    parser.add_argument(
-        "--remove_channels", type=int, nargs='*',
-        default=[]
     )
 
     # Model hyperparameters

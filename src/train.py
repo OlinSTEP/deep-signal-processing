@@ -13,11 +13,7 @@ from src.evaluate import calc_metrics, evaluate
 def build_datasets(config, device):
     # TODO: Add to dataset dir and add type selection
     dataset = MicClassificationDataset(config)
-
-    train_idx, dev_idx, test_idx = dataset.build_splits()
-    train_set = torch.utils.data.Subset(dataset, train_idx)
-    dev_set = torch.utils.data.Subset(dataset, dev_idx)
-    test_set = torch.utils.data.Subset(dataset, test_idx)
+    train_set, dev_set, test_set = dataset.split()
 
     train_loader = torch.utils.data.DataLoader(
         train_set,
@@ -114,8 +110,8 @@ def main(args):
     loss_fn = build_loss_fn(config)
 
     wandb.init(
-        project="STEP Signal Processing",
-        entity="step-signal-processing",
+        project="Audio Signal Processing",
+        entity="step-emg",
         config=config,
         name=config.name,
         group=config.group,
