@@ -13,7 +13,7 @@ class ClassificationEncoder(AbstractTargetEncoder):
         self.idx_to_target = {i: p for i, p in enumerate(self.target_labels)}
         self._target_dim = len(self.target_labels)
 
-    def transform(self, target):
+    def transform(self, target, _):
         if self.target_to_idx is None:
             raise Exception("Target encoder must be fit")
         return self.target_to_idx[target]

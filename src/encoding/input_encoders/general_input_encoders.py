@@ -16,7 +16,7 @@ class PaddedSequenceEncoder(AbstractInputEncoder):
                 )
         self._input_dim = (inputs[0].shape[1], self.max_len)
 
-    def transform(self, data):
+    def transform(self, data, _):
         return data
 
     def collate_fn(self, batch):

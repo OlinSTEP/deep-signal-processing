@@ -23,7 +23,7 @@ class AbstractTargetEncoder(ABC):
         pass
 
     @abstractmethod
-    def transform(self, target):
+    def transform(self, target, is_train):
         """
         Transform the label into a format the training loop can use
 

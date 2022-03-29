@@ -27,12 +27,13 @@ class AbstractInputEncoder(ABC):
         pass
 
     @abstractmethod
-    def transform(self, data):
+    def transform(self, data, is_train):
         """
         Transform the data into a format the model can consume
 
         :param data np.array: Numpy array of single datapoint in
             (time, channels) format
+        :param is_train bool: Bool indicating if datapoint is in train data
         """
         pass
 

@@ -32,9 +32,9 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.loader)
 
     def __getitem__(self, i):
-        input_, target = self.loader.load(i)
-        processed_input = self.input_encoder.transform(input_)
-        processed_target = self.target_encoder.transform(target)
+        input_, target, is_train = self.loader.load(i)
+        processed_input = self.input_encoder.transform(input_, is_train)
+        processed_target = self.target_encoder.transform(target, is_train)
 
         return {
             # (time, num_channels)

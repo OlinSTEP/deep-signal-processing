@@ -28,10 +28,11 @@ class AbstractLoader(ABC):
         Loads a single datapoint from the disk
 
         :param index int: Index of datapoint to load
-        :returns: Tuple of (input_data, target).
+        :returns: Tuple of (input_data, target, is_train).
             Input data is a list of (sample_rate, sequence_data) tuples for
             every input channel
             Target is a single value
+            Is train is a bool, whether the sample is in the train set or not
         """
         pass
 
@@ -53,6 +54,8 @@ class AbstractLoader(ABC):
 class AudioLoader(AbstractLoader):
     def __init__(self, config):
         super().__init__(config)
+
+        self.train_idxs = {}
 
         session_dirs = [
             os.path.join(self.data_path, fn)
@@ -104,7 +107,9 @@ class AudioLoader(AbstractLoader):
             (throat_sample_rate[:, 1], throat_input)
         ]
 
-        return input_, target
+        is_train = index in self.train_idxs
+
+        return input_, target, is_train
 
     def build_splits(self):
         datapoints = (self.load(i) for i in range(len(self)))
@@ -127,6 +132,8 @@ class AudioLoader(AbstractLoader):
             shuffle=True,
             stratify=dev_test_targets,
         )
+
+        self.train_idxs = set(train_idxs)
 
         return train_idxs, dev_idxs, test_idxs
 
