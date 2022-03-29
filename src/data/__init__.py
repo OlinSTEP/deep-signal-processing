@@ -3,7 +3,9 @@ from .loaders import AudioLoader
 from src.encoding.input_encoders import (
     AudioInputEncoder, PaddedSequenceEncoder
 )
-from src.encoding.target_encoders import ClassificationEncoder
+from src.encoding.target_encoders import (
+    ClassificationEncoder
+)
 
 
 class MicClassificationDataset(Dataset):
