@@ -21,7 +21,7 @@ def build_datasets(config, device):
         batch_size=config.batch_size,
         num_workers=(8 if device == "cuda" else 0),
         pin_memory=(device == "cuda"),
-        collate_fn=train_set.collate_fn
+        collate_fn=dataset.collate_fn
     )
     dev_loader = torch.utils.data.DataLoader(
         dev_set,
@@ -29,7 +29,7 @@ def build_datasets(config, device):
         batch_size=1,
         num_workers=1,
         pin_memory=(device == "cuda"),
-        collate_fn=dev_set.collate_fn
+        collate_fn=dataset.collate_fn
     )
     test_loader = torch.utils.data.DataLoader(
         test_set,
@@ -37,7 +37,7 @@ def build_datasets(config, device):
         batch_size=1,
         num_workers=1,
         pin_memory=(device == "cuda"),
-        collate_fn=test_set.collate_fn
+        collate_fn=dataset.collate_fn
     )
 
     return dataset, train_loader, dev_loader, test_loader

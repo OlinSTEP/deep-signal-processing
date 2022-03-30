@@ -47,11 +47,11 @@ class Dataset(torch.utils.data.Dataset):
         return self.loader_cls(config)
 
     def build_input_encoder(self, config):
-        # Generator so we don't have to load all inputs into memory
+        # Generator so we don't have to load all points into memory
         # input_encoder can load all inputs at its discretion
         def generator():
             for i in range(len(self)):
-                input_, _ = self.loader.load(i)
+                input_, _, _ = self.loader.load(i)
                 yield input_
 
         input_encoder = self.input_encoder_cls(config)
@@ -60,10 +60,15 @@ class Dataset(torch.utils.data.Dataset):
         return input_encoder
 
     def build_target_encoder(self, config):
-        datapoints = (self.loader.load(i) for i in range(len(self)))
-        targets = [target for _, target in datapoints]
+        # Generator so we don't have to load all points into memory
+        # target_encoder can load all inputs at its discretion
+        def generator():
+            for i in range(len(self)):
+                _, target, _ = self.loader.load(i)
+                yield target
+
         target_encoder = self.target_encoder_cls(config)
-        target_encoder.fit(targets)
+        target_encoder.fit(generator())
         return target_encoder
 
     def split(self):

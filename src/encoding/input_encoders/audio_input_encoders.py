@@ -23,15 +23,15 @@ class AudioInputEncoder(AbstractInputEncoder):
     required of Input Encoders. Child classes should call _transform() with
     a selection (or all) input channels, along with a sample rate.
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config):
+        super().__init__(config)
 
         # TODO: Move to config
         self.max_ms = 2500
         self.aug = True
 
     def fit(self, inputs):
-        spectogram = self.transform(inputs[0])
+        spectogram = self.transform(next(inputs), False)
         self._input_dim = spectogram.numpy().shape
 
     def collate_fn(self, batch):
@@ -91,7 +91,7 @@ class AudioInputEncoder(AbstractInputEncoder):
 
     def to_spectogram(
         self, channels, sample_rate,
-        n_mels=64, n_fft=1024, hop_len=None, top_db = 80
+        n_mels=64, n_fft=1024, hop_len=None, top_db=80
     ):
         # spec has shape [channel, n_mels, time], where channel is mono, stereo etc
         transform = torchaudio.transforms.MelSpectrogram(
@@ -100,10 +100,10 @@ class AudioInputEncoder(AbstractInputEncoder):
             hop_length=hop_len,
             n_mels=n_mels
         )
-        spectogram = transform(torch.tensor(channels))
+        spectogram = transform(torch.tensor(channels, dtype=torch.float32))
 
         # Convert to decibels
-        transform = torchaudio.transforms.AmplitudeToDB(top_db=top_db)(spec)
+        transform = torchaudio.transforms.AmplitudeToDB(top_db=top_db)
         spectogram = transform(spectogram)
 
         return spectogram

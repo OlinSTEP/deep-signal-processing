@@ -18,7 +18,8 @@ class AbstractTargetEncoder(ABC):
         Iterates over all labels to prepare for label processing. Should always
         set self._input_dim for model building.
 
-        :param targets list: List of all labels, elements vary by dataset
+        :param targets generator->target: Generator that produces targets as
+            created by a Loader
         """
         pass
 
@@ -28,6 +29,7 @@ class AbstractTargetEncoder(ABC):
         Transform the label into a format the training loop can use
 
         :param data: A single label, type varies by dataset
+        :param is_train bool: Bool indicating if datapoint is in train data
         """
         pass
 

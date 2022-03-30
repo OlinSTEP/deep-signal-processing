@@ -29,10 +29,10 @@ class AbstractLoader(ABC):
 
         :param index int: Index of datapoint to load
         :returns: Tuple of (input_data, target, is_train).
-            Input data is a list of (sample_rate, sequence_data) tuples for
+            input_data is a list of (sample_rate, sequence_data) tuples for
             every input channel
-            Target is a single value
-            Is train is a bool, whether the sample is in the train set or not
+            target is a single value
+            is_train is a bool, whether the sample is in the train set or not
         """
         pass
 
@@ -54,6 +54,8 @@ class AbstractLoader(ABC):
 class AudioLoader(AbstractLoader):
     def __init__(self, config):
         super().__init__(config)
+
+        self.stratify = False
 
         self.train_idxs = {}
 
@@ -101,10 +103,10 @@ class AudioLoader(AbstractLoader):
 
         # We seperate the stereo channels into individual channels here
         input_ = [
-            (reg_sample_rate[:, 0], reg_input),
-            (reg_sample_rate[:, 1], reg_input),
-            (throat_sample_rate[:, 0], throat_input)
-            (throat_sample_rate[:, 1], throat_input)
+            (reg_sample_rate, reg_input[:, 0]),
+            (reg_sample_rate, reg_input[:, 1]),
+            (throat_sample_rate, throat_input[:, 0]),
+            (throat_sample_rate, throat_input[:, 1])
         ]
 
         is_train = index in self.train_idxs
@@ -113,7 +115,7 @@ class AudioLoader(AbstractLoader):
 
     def build_splits(self):
         datapoints = (self.load(i) for i in range(len(self)))
-        targets = [target for _, target in datapoints]
+        targets = [target for _, target, _ in datapoints]
 
         # 70% / 15% / 15% split
         # Stratified to guarantee reasonable class distributions
@@ -123,14 +125,14 @@ class AudioLoader(AbstractLoader):
             test_size=0.3,
             random_state=SEED,
             shuffle=True,
-            stratify=targets
+            stratify=targets if self.stratify else None
         )
         dev_idxs, test_idxs = train_test_split(
             dev_test_idxs,
             test_size=0.5,
             random_state=SEED,
             shuffle=True,
-            stratify=dev_test_targets,
+            stratify=dev_test_targets if self.stratify else None
         )
 
         self.train_idxs = set(train_idxs)

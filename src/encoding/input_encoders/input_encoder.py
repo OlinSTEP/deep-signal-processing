@@ -8,7 +8,7 @@ class AbstractInputEncoder(ABC):
     Input encoders take in data of a standardized format and prepare them for
     consumption by a model.
     """
-    def __init__(self):
+    def __init__(self, config):
         self._input_dim = None
         super().__init__()
 
@@ -21,8 +21,8 @@ class AbstractInputEncoder(ABC):
         data (Ex: PaddedSequenceEncoder). Should always set self._input_dim for
         model building.
 
-        :param inputs list[np.array]: List of input arrays, all input datapoints
-            each in (time, channels) format
+        :param inputs generator->list[(sample_rate, sequence_data)]:
+            Generator that produces inputs as created by the Loader.
         """
         pass
 
@@ -31,8 +31,8 @@ class AbstractInputEncoder(ABC):
         """
         Transform the data into a format the model can consume
 
-        :param data np.array: Numpy array of single datapoint in
-            (time, channels) format
+        :param data list[(sample_rate, sequence_data)]: Single datapoint as
+            created by a Loader.
         :param is_train bool: Bool indicating if datapoint is in train data
         """
         pass

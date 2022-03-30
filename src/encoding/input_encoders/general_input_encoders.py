@@ -5,7 +5,7 @@ import torch
 
 class PaddedSequenceEncoder(AbstractInputEncoder):
     def __init__(self, config):
-        super().__init__()
+        super().__init__(config)
         self.max_len = config.max_len
 
     def fit(self, inputs):
