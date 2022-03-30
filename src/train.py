@@ -115,7 +115,8 @@ def main(args):
         name=config.name,
         group=config.group,
         notes=config.notes,
-        config_exclude_keys=WANDB_EXCLUDE_KEYS
+        config_exclude_keys=WANDB_EXCLUDE_KEYS,
+        mode=("disabled" if config.wandb_off else "online")
     )
     wandb.watch(
         model,

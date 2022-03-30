@@ -59,6 +59,10 @@ def config_from_args(args):
         "--notes", type=str,
         default=None
     )
+    parser.add_argument(
+        "--wandb_off", action='store_true',
+        default=False,
+    )
 
     # Filepaths
     parser.add_argument(
