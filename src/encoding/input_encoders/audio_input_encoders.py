@@ -28,7 +28,7 @@ class AudioInputEncoder(AbstractInputEncoder):
 
         # TODO: Move to config
         self.max_ms = 2500
-        self.aug = True
+        self.aug = False
 
     def fit(self, inputs):
         spectogram = self.transform(next(inputs), False)
@@ -77,7 +77,10 @@ class AudioInputEncoder(AbstractInputEncoder):
                 channel = channel[:max_len]
             elif l < max_len:
                 diff = max_len - l
-                start_pad_len = random.randint(0, diff)
+                if self.aug:
+                    start_pad_len = random.randint(0, diff)
+                else:
+                    start_pad_len = 0
                 end_pad_len = diff - start_pad_len
 
                 start_pad = np.zeros(start_pad_len)

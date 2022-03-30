@@ -118,7 +118,6 @@ class AudioLoader(AbstractLoader):
         targets = [target for _, target, _ in datapoints]
 
         # 70% / 15% / 15% split
-        # Stratified to guarantee reasonable class distributions
         train_idxs, dev_test_idxs, _, dev_test_targets = train_test_split(
             list(range(len(self))),
             targets,

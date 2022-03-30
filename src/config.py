@@ -95,11 +95,11 @@ def config_from_args(args):
     )
     parser.add_argument(
         "--convs", type=conv_params, nargs='+',
-        default=[(3, 1, 16), (3, 1, 32), (3, 1, 64)]
+        default=[(5, 2, 8), (3, 2, 16), (3, 2, 32), (3, 2, 64)]
     )
     parser.add_argument(
         "--pools", type=pool_params, nargs='+',
-        default=[(2, 2), (2, 2), (2, 2)]
+        default=[(0, 0), (0, 0), (0, 0), (0, 0)]
     )
     parser.add_argument(
         "--drop_prob", type=float,
