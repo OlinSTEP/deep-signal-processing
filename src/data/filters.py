@@ -1,6 +1,7 @@
 import numpy as np
 
 from scipy import signal
+import torchaudio.transforms
 
 
 def smooth(data):
@@ -12,14 +13,14 @@ def smooth(data):
     return ((data + np.roll(data, 1))/2.0)[1::2]
 
 
-def remove_drift(data, fs):
+def remove_drift(data, sample_frequency):
     """
-    fs: sampling frequency; nominal srate
+    sample_frequency: nominal srate
     """
     # [lowcut, highcut] = [40, 280] are currently arbitrary values
     # typical adult male will have a fundamental frequency from 85 to 155
     # Hz, and that of a typical adult female from 165 to 255 Hz
-    b, a = signal.butter(3, [40, 280], btype='bandpass', fs=fs)
+    b, a = signal.butter(3, [40, 280], btype='bandpass', fs=sample_frequency)
     return signal.filtfilt(b, a, data)
 
 
@@ -41,3 +42,9 @@ def filter_audio_channel(sample_freq, channel):
     x = notch_harmonics(x, 60, sample_freq)
     x = remove_drift(x, sample_freq)
     return x
+
+
+def resample_channel(data, sample_freq, target_freq):
+    transform = torchaudio.transforms.Resample(sample_freq, target_freq)
+    tensor = transform(data[None, :])
+    return tensor.numpy()
