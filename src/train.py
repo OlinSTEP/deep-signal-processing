@@ -60,7 +60,11 @@ def build_loss_fn(config):
     return loss_fn
 
 
-def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
+def train(
+    config, device,
+    dataset, train_loader, dev_loader,
+    model, opt, loss_fn
+):
     model.train()
     for epoch in range(config.epochs):
         losses = []
@@ -85,7 +89,7 @@ def train(config, device, train_loader, dev_loader, model, opt, loss_fn):
 
         metrics = {}
         metrics.update(calc_metrics(losses, accuracies, prefix="Train"))
-        metrics.update(evaluate(device, dev_loader, model, loss_fn))
+        metrics.update(evaluate(device, dataset, dev_loader, model, loss_fn))
         wandb.log(metrics)
 
         print(
@@ -125,7 +129,11 @@ def main(args):
     )
 
     print("Starting training...")
-    train(config, device, train_loader, dev_loader, model, opt, loss_fn)
+    train(
+        config, device,
+        dataset, train_loader, dev_loader,
+        model, opt, loss_fn
+    )
 
 
 if __name__ == "__main__":

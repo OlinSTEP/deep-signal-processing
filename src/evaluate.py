@@ -5,8 +5,10 @@ from sklearn.metrics import precision_recall_fscore_support
 import torch
 
 
-def calc_metrics(losses, accuracies, labels=None, preds=None,
-                 target_labels=None, prefix=""):
+def calc_metrics(
+    losses, accuracies,
+    labels=None, preds=None, target_labels=None, prefix=""
+):
     if prefix:
         prefix = prefix.strip()
         prefix += " "
@@ -57,7 +59,7 @@ def calc_metrics(losses, accuracies, labels=None, preds=None,
     return metrics
 
 
-def evaluate(device, dataloader, model, loss_fn):
+def evaluate(device, dataset, dataloader, model, loss_fn):
     # TODO: Add support for testset
     losses = []
     accuracies = []
@@ -66,8 +68,8 @@ def evaluate(device, dataloader, model, loss_fn):
     model.eval()
     with torch.no_grad():
         for datapoint in dataloader:
-            inputs = datapoint["emg"].to(device)
-            labels = datapoint["text"].to(device)
+            inputs = datapoint["input"].to(device)
+            labels = datapoint["target"].to(device)
             out = model(inputs)
             loss = loss_fn(out, labels)
 
@@ -82,6 +84,6 @@ def evaluate(device, dataloader, model, loss_fn):
     return calc_metrics(
         losses, accuracies,
         labels=all_labels, preds=all_preds,
-        target_labels=dataloader.dataset.target_encoder.target_labels,
+        target_labels=dataset.target_encoder.target_labels,
         prefix="Val"
     )
