@@ -36,6 +36,7 @@ class CNN1D(Model):
             pool_len, pool_stride = pool_params
             self.convs.append(nn.Conv1d(
                 last_size, out_size, kernel_len, kernel_stride))
+            self.convs.append(nn.BatchNorm1d(out_size))
             if pool_len > 1:
                 self.convs.append(nn.MaxPool1d(pool_len, pool_stride))
             if config.drop_prob > 0:

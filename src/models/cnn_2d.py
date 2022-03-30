@@ -37,6 +37,7 @@ class CNN2D(Model):
             self.convs.append(nn.Conv2d(
                 last_size, out_size, kernel_len, kernel_stride
             )), _
+            self.convs.append(nn.BatchNorm2d(out_size))
             if pool_len > 1:
                 self.convs.append(nn.MaxPool2d(pool_len, pool_stride))
             if config.drop_prob > 0:
