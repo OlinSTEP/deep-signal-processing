@@ -5,11 +5,11 @@ import numpy as np
 from src.models.model import Model
 
 
-class CNN1D(Model):
+class CNN2D(Model):
     def __init__(self, in_size, out_size, config):
         """
         Parameters:
-            in_size: Input size, expected  to be (channels, length)
+            in_size: Input size, expected  to be (channels, height, width)
             n_out: Number of output classes
         Config Parameters:
             fcs: Iterable containing the amount of neurons per layer
@@ -17,12 +17,12 @@ class CNN1D(Model):
                 1024, 512 and 256 neurons respectively
             convs: Iterable containing the kernel size, stride, output channels
                 for each convolutional layer.
-                ex: ((3, 1, 16)) would make 1 convolution layer with an 3 length
+                ex: ((3, 1, 16)) would make 1 convolution layer with an 3x3
                 kernel, 1 stride, and 16 output channels
             pools: Iterable containing the max pool length and stride for each
                 convolutional layer. Length < 1 indicates no pooling for the
                 corresponding pooling layer.
-                ex: ((2, 2)) would make 1 pooling layer with 2 length and 2 stride
+                ex: ((2, 2)) would make 1 pooling layer of size 2x2 and 2 stride
             drop_prob: Probability of dropout. Dropout is not used if < 0,
                 otherwise applied between all layers.
         """
@@ -34,10 +34,11 @@ class CNN1D(Model):
         for conv_params, pool_params  in zip(config.convs, config.pools):
             kernel_len, kernel_stride, out_size = conv_params
             pool_len, pool_stride = pool_params
-            self.convs.append(nn.Conv1d(
-                last_size, out_size, kernel_len, kernel_stride))
+            self.convs.append(nn.Conv2d(
+                last_size, out_size, kernel_len, kernel_stride
+            ))
             if pool_len > 1:
-                self.convs.append(nn.MaxPool1d(pool_len, pool_stride))
+                self.convs.append(nn.MaxPool2d(pool_len, pool_stride))
             if config.drop_prob > 0:
                 self.convs.append(nn.Dropout(p=config.drop_prob))
             last_size = out_size
