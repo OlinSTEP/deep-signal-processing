@@ -1,5 +1,7 @@
 import argparse
 
+from src.models import MODELS
+
 
 WANDB_EXCLUDE_KEYS = ["name", "group", "notes"]
 
@@ -75,6 +77,14 @@ def config_from_args(args):
     )
 
     # Model hyperparameters
+    parser.add_argument(
+        "--model", type=str,
+        default="2d_cnn",
+        help=(
+            "Type of model to train. Options: "
+            f"{', '.join(MODELS.keys())}"
+        )
+    )
     parser.add_argument(
         "--fcs", type=int, nargs='+',
         default=[128]

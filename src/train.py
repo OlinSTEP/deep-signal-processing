@@ -6,12 +6,11 @@ from tqdm import tqdm
 
 from src.config import config_from_args, WANDB_EXCLUDE_KEYS
 from src.data import MicClassificationDataset
-from src.models.cnn_1d import CNN1D
+from src.models import MODELS
 from src.evaluate import calc_metrics, evaluate
 
 
 def build_datasets(config, device):
-    # TODO: Add to dataset dir and add type selection
     dataset = MicClassificationDataset(config)
     train_set, dev_set, test_set = dataset.split()
 
@@ -44,19 +43,19 @@ def build_datasets(config, device):
 
 
 def build_model(config, dataset):
-    # TODO: Add to model dir and add type selection
-    model = CNN1D(dataset.input_dim, dataset.target_dim, config)
+    model_cls = MODELS[config.model.lower()]
+    model = model_cls(dataset.input_dim, dataset.target_dim, config)
     return model
 
 
 def build_optimizer(config, model):
-    # TODO: Add to new dir and add type selection
+    # TODO: Add type selection
     opt = torch.optim.Adam(model.parameters(), lr=config.lr)
     return opt
 
 
 def build_loss_fn(config):
-    # TODO: Add to new dir and add type selection
+    # TODO: Add type selection
     loss_fn = torch.nn.CrossEntropyLoss()
     return loss_fn
 

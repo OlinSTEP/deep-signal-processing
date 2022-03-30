@@ -9,8 +9,8 @@ class CNN2D(Model):
     def __init__(self, in_size, out_size, config):
         """
         Parameters:
-            in_size: Input size, expected  to be (channels, height, width)
-            n_out: Number of output classes
+            in_size: Input size, expected to be (channels, height, width)
+            out_size: Number of output classes
         Config Parameters:
             fcs: Iterable containing the amount of neurons per layer
                 ex: (1024, 512, 256) would make 3 fully connected layers, with
@@ -28,15 +28,15 @@ class CNN2D(Model):
         """
         super().__init__()
 
-        in_channels, _ = in_size
+        in_channels, _, _ = in_size
         self.convs = nn.ModuleList()
         last_size = in_channels
-        for conv_params, pool_params  in zip(config.convs, config.pools):
+        for conv_params, pool_params in zip(config.convs, config.pools):
             kernel_len, kernel_stride, out_size = conv_params
             pool_len, pool_stride = pool_params
             self.convs.append(nn.Conv2d(
                 last_size, out_size, kernel_len, kernel_stride
-            ))
+            )), _
             if pool_len > 1:
                 self.convs.append(nn.MaxPool2d(pool_len, pool_stride))
             if config.drop_prob > 0:
