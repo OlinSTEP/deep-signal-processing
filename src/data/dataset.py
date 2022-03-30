@@ -35,11 +35,8 @@ class Dataset(torch.utils.data.Dataset):
         input_, target, is_train = self.loader.load(i)
         processed_input = self.input_encoder.transform(input_, is_train)
         processed_target = self.target_encoder.transform(target, is_train)
-
         return {
-            # (time, num_channels)
             'input': processed_input,
-            # (1)
             'target': processed_target
         }
 

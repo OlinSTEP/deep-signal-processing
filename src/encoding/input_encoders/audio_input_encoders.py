@@ -35,13 +35,18 @@ class AudioInputEncoder(AbstractInputEncoder):
         self._input_dim = spectogram.numpy().shape
 
     def collate_fn(self, batch):
-        return batch
+        batch_input = torch.stack([d["input"] for d in batch])
+        batch_target = torch.tensor([d["target"] for d in batch])
+        return {
+            "input": batch_input,
+            "target": batch_target,
+        }
 
     def _transform(self, input_, is_train, sample_rate):
         channels = self.process_channels(input_, sample_rate)
         channels = self.pad_trunc_channels(channels, sample_rate, self.max_ms)
         if self.aug and is_train:
-            self.aug_channels(channels, self.shift_pct)
+            self.aug_channels(channels)
 
         # (channels, n_mels, time)
         spectogram = self.to_spectogram(channels, sample_rate)
@@ -79,15 +84,14 @@ class AudioInputEncoder(AbstractInputEncoder):
                 end_pad = np.zeros(end_pad_len)
                 channel = np.concatenate((start_pad, channel, end_pad), axis=0)
             resized_channels.append(channel)
-        return resized_channels
+        return np.array(resized_channels)
 
     def aug_channels(self, channels, shift_pct=0.2):
-        auged_channels = []
+        # channels must be a numpy array
         for channel in channels:
-            shift_amt = random.random() * shift_pct * len(channels)
-            channel = np.roll(channel, shift_amt)
-            auged_channels.append(channel)
-        return auged_channels
+            shift_amt = int(random.random() * shift_pct * len(channels))
+            channel[:] = np.roll(channel, shift_amt)
+        return channels
 
     def to_spectogram(
         self, channels, sample_rate,

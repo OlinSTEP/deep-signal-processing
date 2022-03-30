@@ -125,14 +125,14 @@ class AudioLoader(AbstractLoader):
             test_size=0.3,
             random_state=SEED,
             shuffle=True,
-            stratify=targets if self.stratify else None
+            stratify=(targets if self.stratify else None)
         )
         dev_idxs, test_idxs = train_test_split(
             dev_test_idxs,
             test_size=0.5,
             random_state=SEED,
             shuffle=True,
-            stratify=dev_test_targets if self.stratify else None
+            stratify=(dev_test_targets if self.stratify else None)
         )
 
         self.train_idxs = set(train_idxs)
