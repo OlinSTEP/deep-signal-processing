@@ -9,7 +9,7 @@ class ClassificationEncoder(AbstractTargetEncoder):
 
     def fit(self, targets):
         # Loads the entire dataset's targets into memory
-        # Can be refactored to not at the cost of performance is this breaks
+        # Can be refactored to not at the cost of performance if this breaks
         self.target_labels = sorted(list(set(targets)))
         self.target_to_idx = {p: i for i, p in enumerate(self.target_labels)}
         self.idx_to_target = {i: p for i, p in enumerate(self.target_labels)}

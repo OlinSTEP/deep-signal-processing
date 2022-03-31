@@ -32,16 +32,16 @@ class CNN1D(Model):
         self.convs = nn.ModuleList()
         last_size = in_channels
         for conv_params, pool_params  in zip(config.convs, config.pools):
-            kernel_len, kernel_stride, out_size = conv_params
+            kernel_len, kernel_stride, out_channels = conv_params
             pool_len, pool_stride = pool_params
             self.convs.append(nn.Conv1d(
-                last_size, out_size, kernel_len, kernel_stride))
-            self.convs.append(nn.BatchNorm1d(out_size))
+                last_size, out_channels, kernel_len, kernel_stride))
+            self.convs.append(nn.BatchNorm1d(out_channels))
             if pool_len > 1:
                 self.convs.append(nn.MaxPool1d(pool_len, pool_stride))
             if config.drop_prob > 0:
                 self.convs.append(nn.Dropout(p=config.drop_prob))
-            last_size = out_size
+            last_size = out_channels
 
         x = torch.tensor(np.ones(in_size, dtype=np.float32)[None, :])
         for conv in self.convs:
