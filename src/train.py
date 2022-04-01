@@ -5,13 +5,14 @@ import torch
 from tqdm import tqdm
 
 from src.config import config_from_args, WANDB_EXCLUDE_KEYS
-from src.data import MicClassificationDataset
+from src.data import RegMicClassificationDataset, ThroatMicClassificationDataset
 from src.models import MODELS
 from src.evaluate import calc_metrics, evaluate
 
 
 def build_datasets(config, device):
-    dataset = MicClassificationDataset(config)
+    # dataset = RegMicClassificationDataset(config)
+    dataset = ThroatMicClassificationDataset(config)
     train_set, dev_set, test_set = dataset.split()
 
     train_loader = torch.utils.data.DataLoader(

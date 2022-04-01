@@ -27,7 +27,7 @@ class AudioInputEncoder(AbstractInputEncoder):
         super().__init__(config)
 
         # TODO: Move to config
-        self.max_ms = 2500
+        self.max_ms = 3000
         self.aug = False
 
     def fit(self, inputs):
@@ -89,7 +89,7 @@ class AudioInputEncoder(AbstractInputEncoder):
             resized_channels.append(channel)
         return np.array(resized_channels)
 
-    def aug_channels(self, channels, shift_pct=0.2):
+    def aug_channels(self, channels, shift_pct=0.1):
         # channels must be a numpy array
         for channel in channels:
             shift_amt = int(random.random() * shift_pct * len(channels))
@@ -117,7 +117,7 @@ class AudioInputEncoder(AbstractInputEncoder):
 
     def aug_spectogram(
         self, spectogram,
-        max_mask_pct=0.1, n_freq_masks=1, n_time_masks=1
+        max_mask_pct=0.05, n_freq_masks=0, n_time_masks=1
     ):
         _, n_mels, n_steps = spectogram.shape
         mask_value = spectogram.mean()

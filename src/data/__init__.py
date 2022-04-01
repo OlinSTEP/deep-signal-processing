@@ -8,7 +8,7 @@ from src.encoding.target_encoders import (
 )
 
 
-class MicClassificationDataset(Dataset):
+class RegMicClassificationDataset(Dataset):
     loader_cls = AudioLoader
     input_encoder_cls = RegMicInputEncoder
     target_encoder_cls = ClassificationEncoder

@@ -39,7 +39,7 @@ def notch_harmonics(data, freq, sample_freq):
 def filter_audio_channel(sample_freq, channel):
     # x = smooth(channel)
     x = channel
-    x = notch_harmonics(x, 60, sample_freq)
+    # x = notch_harmonics(x, 60, sample_freq)
     x = remove_drift(x, sample_freq)
     return x
 
