@@ -12,14 +12,38 @@ import numpy as np
 import scipy.io.wavfile
 
 
-REG_CHANNEL = 0
-THROAT_CHANNEL = 1
-MARKER_CHANNEL = 2
+def map_markers_to_timestamps(markers, timestamps):
+    """
+    Creates a list mapping marker indicies to nearest timestamp index
+    For marker with idx i, idx of nearest timestamp will be mapping[i]
+    """
+    closest_idxs = []
+    m = t = 0
 
+    # First recording *should* always be before first marker
+    assert timestamps[0] < markers[0]
 
-def find_nearest_idx(array, value):
-  array = np.asarray(array)
-  return (np.abs(array - value)).argmin()
+    while m < len(markers) and t < len(timestamps):
+        if timestamps[t] < markers[m]:
+            t += 1
+        elif timestamps[t] > markers[m]:
+            last = timestamps[t - 1]
+            last_diff = markers[m] - last
+            now = timestamps[t]
+            now_diff = now - markers[m]
+            closest = t if now_diff < last_diff else t - 1
+            closest_idxs.append(closest)
+            m += 1
+        else:
+            closest_idxs.append(t)
+            m += 1
+            t += 1
+
+    while m < len(markers):
+        closest_idxs.append(timestamps[-1])
+        m += 1
+
+    return closest_idxs
 
 
 def get_trailing_number(s):
@@ -27,53 +51,86 @@ def get_trailing_number(s):
     return int(m.group()) if m else None
 
 
-def build_marker_list(streams):
-    marker_list = []
-    idx_list = []
-    time_series = streams[MARKER_CHANNEL]["time_series"]
-    time_stamps = streams[MARKER_CHANNEL]["time_stamps"]
-    for i in np.arange(len(time_series) - 1):
-      marker_text = time_series[i][0]
-      marker_text_next = time_series[i + 1][0]
-
-      # Check that this marker and the next one are a pair, otherwise skip
-      if marker_text[0] == marker_text_next[0]:
-        # Record which type it is and the starting and end time
-        marker_list.append((
-            marker_text[0],  # V or S, voiced or silent
-            time_stamps[i],
-            time_stamps[i+1]
-        ))
-        idx_list.append(get_trailing_number(marker_text))
-    return marker_list, idx_list
+def get_stream_idx(streams, stream_name):
+    for i, stream in enumerate(streams):
+        if stream["info"]["name"][0] == stream_name:
+            return i
+    print(f"Stream {stream_name} not found!")
+    get_names_exit(streams)
 
 
-def split_stream(stream, marker_list):
-    split_data = []
-    for (_, start, end) in marker_list:
-        stream_start = find_nearest_idx(stream["time_stamps"], start)
-        stream_end = find_nearest_idx(stream["time_stamps"], end)
-        split_data.append(stream["time_series"][stream_start:stream_end])
-    return split_data
+def get_names_exit(streams):
+    for i, stream in enumerate(streams):
+        print(f"{i}: {stream['info']['name'][0]}")
+    sys.exit()
 
 
-def load_streams(file_path):
+def split_streams(marker_stream, data_streams):
+    marker_series = marker_stream["time_series"]
+    marker_stamps = marker_stream["time_stamps"]
+
+    markers_to_streams = {
+        key: map_markers_to_timestamps(marker_stamps, stream["time_stamps"])
+        for key, stream in data_streams.items()
+    }
+
+    all_data = []
+    for i in range(len(marker_series) - 1):
+        # Marks are in the form [b|e][target_idx][N|S][sequence_idx]
+        marker_text = marker_series[i][0]
+        marker_text_next = marker_series[i + 1][0]
+
+        # Skip ending markers
+        if marker_text[0] == 'e':
+            continue
+
+        # Check that this marker and the next one are a pair, otherwise skip
+        if marker_text[0] == 'b' and marker_text_next[0] == 'e':
+            data_dict = {
+                "target_idx": int(marker_text[1]),
+                "type": marker_text[2]  # V or S, voiced or silent
+            }
+            for key, mapping in markers_to_streams.items():
+                stream_data = data_streams[key]["time_series"]
+                data_dict[key] = stream_data[mapping[i]:mapping[i + 1]]
+            all_data.append(data_dict)
+
+    return all_data
+
+
+def load_streams(
+    file_path, reg_name, throat_name, marker_name, get_names
+):
     print(f"Loading {file_path}...")
     streams, _ = pyxdf.load_xdf(file_path)
 
+    if get_names:
+        get_names_exit()
+
+    for i, stream in enumerate(streams):
+        print(f"{i}: {stream['info']['name'][0]}")
+
+    reg_channel = get_stream_idx(streams, reg_name)
+    throat_channel = get_stream_idx(streams, throat_name)
+    marker_channel = get_stream_idx(streams, marker_name)
+    print(f"Reg channel: {reg_channel}")
+    print(f"Throat channel: {throat_channel}")
+    print(f"Marker channel: {marker_channel}")
+
     print("Processing...")
-    marker_list, idx_list = build_marker_list(streams)
-    reg_data = split_stream(streams[REG_CHANNEL], marker_list)
-    reg_sample_rate = streams[REG_CHANNEL]["info"]["nominal_srate"][0]
-    throat_data = split_stream(streams[THROAT_CHANNEL], marker_list)
-    throat_sample_rate = streams[THROAT_CHANNEL]["info"]["nominal_srate"][0]
+    all_data = split_streams(
+        streams[marker_channel],
+        {
+            "reg": streams[reg_channel],
+            "throat": streams[throat_channel]
+        }
+    )
+    sample_rates = {
+        "reg": streams[reg_channel]["info"]["nominal_srate"][0],
+        "throat": streams[throat_channel]["info"]["nominal_srate"][0],
+    }
 
-    all_data = [
-        {"reg": (r, reg_sample_rate), "throat": (t, throat_sample_rate), "target_idx": i}
-        for r, t, i in zip(reg_data, throat_data, idx_list)
-    ]
-
-    return all_data
+    return all_data, sample_rates
 
 
 def load_targets(file_path):
@@ -88,51 +145,64 @@ def load_targets(file_path):
 
     with open(file_path) as f:
         data = json.load(f)
-    target = data["text"]
+        target = data["text"]
 
     return idx, target
 
 
-def save_datapoint(save_dir, i, datapoint):
+def save_datapoint(save_dir, i, datapoint, sample_rates):
     print(f"Writing {os.path.join(save_dir, str(i))}...")
 
     file_path = os.path.join(save_dir, f"{i}_info.json")
-    save_dict = {"target": datapoint["target"]}
+    save_dict = {
+        "target": datapoint["target"],
+        "type": datapoint["type"]
+    }
     with open(file_path, "w") as f:
         json.dump(save_dict, f)
     print(f"  Wrote {file_path}")
 
-    reg_array, reg_sample_rate = datapoint["reg"]
+    reg_array = datapoint["reg"]
+    reg_sample_rate = sample_rates["reg"]
     file_path = os.path.join(save_dir, f"{i}_reg_audio.wav")
     scipy.io.wavfile.write(
         file_path,
-        int(reg_sample_rate),
+        int(float(reg_sample_rate)),
         reg_array
     )
     print(f"  Wrote {file_path}")
 
-    throat_array, throat_sample_rate = datapoint["throat"]
+    throat_array = datapoint["throat"]
+    throat_sample_rate = sample_rates["throat"]
     file_path = os.path.join(save_dir, f"{i}_throat_audio.wav")
     scipy.io.wavfile.write(
         file_path,
-        int(throat_sample_rate),
+        int(float(throat_sample_rate)),
         throat_array
     )
     print(f"  Wrote {file_path}")
 
 
-def save_datapoints(save_dir, all_data):
+def save_datapoints(save_dir, all_data, sample_rates):
     os.makedirs(save_dir, exist_ok=True)
     for i, data_dict in enumerate(all_data):
-        save_datapoint(save_dir, i, data_dict)
+        save_datapoint(save_dir, i, data_dict, sample_rates)
 
 
-def process_session_dir(save_dir, session_dir):
+def process_session_dir(args, session_dir):
+    save_dir = args.save
+    reg_channel = args.reg
+    throat_channel = args.throat
+    marker_channel = args.marker
+    get_names = args.get_names
+
     idx_to_target = {}
     for file_name in os.listdir(session_dir):
         path = os.path.join(session_dir, file_name)
         if file_name.endswith(".xdf"):
-            all_data = load_streams(path)
+            all_data, sample_rates = load_streams(
+                path, reg_channel, throat_channel, marker_channel, get_names
+            )
         elif file_name.endswith(".json"):
             idx, target = load_targets(path)
             idx_to_target[idx] = target
@@ -142,7 +212,8 @@ def process_session_dir(save_dir, session_dir):
         {
             "reg": d["reg"],
             "throat": d["throat"],
-            "target": idx_to_target[d["target_idx"]]
+            "target": idx_to_target[d["target_idx"]],
+            "type": d["type"],
         } for d in all_data
     ]
 
@@ -150,7 +221,7 @@ def process_session_dir(save_dir, session_dir):
     all_data = [d for d in all_data if d["target"]]
 
     session_save_dir = os.path.join(save_dir, os.path.basename(session_dir))
-    save_datapoints(session_save_dir, all_data)
+    save_datapoints(session_save_dir, all_data, sample_rates)
 
 
 def parse_args(args):
@@ -166,6 +237,31 @@ def parse_args(args):
         type=str,
         default="data/processed_data/SpringBreakAudio"
     )
+    parser.add_argument(
+        '--reg',
+        type=str,
+        default="AudioCaptureWin"
+    )
+    parser.add_argument(
+        '--throat',
+        type=str,
+        default="MyAudioStream"
+    )
+    parser.add_argument(
+        '--marker',
+        type=str,
+        default="MarkersForBooks"
+    )
+    parser.add_argument(
+        '--get_names',
+        default=False,
+        action="store_true"
+    )
+    parser.add_argument(
+        '--no_thread',
+        default=False,
+        action="store_true"
+    )
 
     return parser.parse_args(args)
 
@@ -176,11 +272,15 @@ def main(args):
     os.makedirs(args.save, exist_ok=True)
     session_dirs = [os.path.join(args.data, n) for n in os.listdir(args.data)]
 
-    pool = Pool(processes=cpu_count())
-    func = partial(process_session_dir, args.save)
-    pool.map(func, session_dirs)
-    pool.close()
-    pool.join()
+    if not args.no_thread:
+        pool = Pool(processes=cpu_count())
+        func = partial(process_session_dir, args)
+        pool.map(func, session_dirs)
+        pool.close()
+        pool.join()
+    else:
+        for session_dir in session_dirs:
+            process_session_dir(args, session_dir)
 
 
 if __name__ == "__main__":
