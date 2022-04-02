@@ -24,14 +24,25 @@ class Dataset(torch.utils.data.Dataset):
                 "Data loading classes not set! Use a class that extends Dataset"
             )
 
+        self.use_cache = config.cache_processed
+        self.cache = {}
+
         self.loader = self.build_loader(config)
         self.input_encoder = self.build_input_encoder(config)
         self.target_encoder = self.build_target_encoder(config)
+
+        if self.use_cache:
+            self.use_cache = False
+            self.cache = [self[i] for i in range(len(self))]
+            self.use_cache = True
 
     def __len__(self):
         return len(self.loader)
 
     def __getitem__(self, i):
+        if self.use_cache:
+            return self.cache[i]
+
         input_, target, is_train = self.loader.load(i)
         processed_input = self.input_encoder.transform(input_, is_train)
         processed_target = self.target_encoder.transform(target, is_train)

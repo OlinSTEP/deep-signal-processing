@@ -72,8 +72,17 @@ def validate_convs_pools(config):
         )
 
 
+def validate_aug_cache(config):
+    if config.aug and config.cache_processed:
+        raise argparse.ArgumentError(
+            "Augmentations do not work with cache_processed! Use cache_raw or "
+            "don't use augmentations"
+        )
+
+
 def validate_config(config):
     validate_convs_pools(config)
+    validate_aug_cache(config)
 
 
 def config_from_args(args):
@@ -149,9 +158,17 @@ def config_from_args(args):
         )
     )
     parser.add_argument(
-        "--load_into_memory", type=int,
+        "--cache_raw", type=int,
         default=0,
-        help="Whether to load dataset into RAM or not. 1 for True, 0 for False"
+        help="Whether to load dataset into memory or not. 1 for True, 0 for False"
+    )
+    parser.add_argument(
+        "--cache_processed", type=int,
+        default=0,
+        help=(
+            "Whether to load processed dataset into memory or not. 1 for True, "
+            "0 for False. WARNING: WILL BREAK AUGMENTATIONS"
+        )
     )
 
     ## Splits
