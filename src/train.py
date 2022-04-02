@@ -28,16 +28,16 @@ def build_datasets(config, device):
     dev_loader = torch.utils.data.DataLoader(
         dev_set,
         shuffle=False,
-        batch_size=1,
-        num_workers=1,
+        batch_size=config.batch_size,
+        num_workers=(cpu_count() if device == "cuda" else 0),
         pin_memory=(device == "cuda"),
         collate_fn=dataset.collate_fn
     )
     test_loader = torch.utils.data.DataLoader(
         test_set,
         shuffle=False,
-        batch_size=1,
-        num_workers=1,
+        batch_size=config.batch_size,
+        num_workers=(cpu_count() if device == "cuda" else 0),
         pin_memory=(device == "cuda"),
         collate_fn=dataset.collate_fn
     )
