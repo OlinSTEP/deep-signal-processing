@@ -302,6 +302,11 @@ def config_from_args(args):
         default=16,
         help="Batch size"
     )
+    parser.add_argument(
+        "--log_freq", type=int,
+        default=16,
+        help="How many epochs to wait before logging"
+    )
 
     config = parser.parse_args(args)
 

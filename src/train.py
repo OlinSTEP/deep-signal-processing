@@ -93,17 +93,19 @@ def train(
 
         metrics = {}
         metrics.update(calc_metrics(losses, accuracies, prefix="Train"))
-        metrics.update(evaluate(device, dataset, dev_loader, model, loss_fn))
+        if epoch % config.log_freq == 0 or epoch + 1 == config.epochs:
+            metrics.update(evaluate(device, dataset, dev_loader, model, loss_fn))
         wandb.log(metrics)
 
         print(
             f"Train Loss: {metrics['Train Loss']:.3f} | "
             f"Train Accuracy: {metrics['Train Acc']:.3f}"
         )
-        print(
-            f"Dev Loss:   {metrics['Val Loss']:.3f} | "
-            f"Dev Accuracy:   {metrics['Val Acc']:.3f}"
-        )
+        if epoch % config.log_freq == 0 or epoch + 1 == config.epochs:
+            print(
+                f"Dev Loss:   {metrics['Val Loss']:.3f} | "
+                f"Dev Accuracy:   {metrics['Val Acc']:.3f}"
+            )
 
 
 def main(args):
