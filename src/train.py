@@ -4,10 +4,10 @@ import wandb
 import torch
 from tqdm import tqdm
 
-from src.config import config_from_args, WANDB_EXCLUDE_KEYS
-from src.data import RegMicClassificationDataset, ThroatMicClassificationDataset
-from src.models import MODELS
-from src.evaluate import calc_metrics, evaluate
+from .config import config_from_args, WANDB_EXCLUDE_KEYS
+from .data import RegMicClassificationDataset, ThroatMicClassificationDataset
+from .models import MODELS
+from .evaluate import calc_metrics, evaluate
 
 
 def build_datasets(config, device):

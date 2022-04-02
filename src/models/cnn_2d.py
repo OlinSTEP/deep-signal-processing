@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from src.models.model import Model
+from .model import Model
 
 
 class CNN2D(Model):

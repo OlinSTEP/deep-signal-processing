@@ -36,14 +36,6 @@ def notch_harmonics(data, freq, sample_freq):
     return signal
 
 
-def filter_audio_channel(sample_freq, channel):
-    # x = smooth(channel)
-    x = channel
-    # x = notch_harmonics(x, 60, sample_freq)
-    x = remove_drift(x, sample_freq)
-    return x
-
-
 def resample_channel(data, sample_freq, target_freq):
     transform = torchaudio.transforms.Resample(sample_freq, target_freq)
     tensor = transform(data[None, :])

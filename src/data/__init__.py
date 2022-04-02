@@ -1,9 +1,9 @@
 from .dataset import Dataset
 from .loaders import AudioLoader
-from src.encoding.input_encoders import (
+from .encoding.input_encoders import (
     RegMicInputEncoder, ThroatMicInputEncoder, BothMicInputEncoder
 )
-from src.encoding.target_encoders import (
+from .encoding.target_encoders import (
     ClassificationEncoder
 )
 

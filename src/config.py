@@ -1,6 +1,6 @@
 import argparse
 
-from src.models import MODELS
+from .models import MODELS
 
 
 WANDB_EXCLUDE_KEYS = ["name", "group", "notes"]
