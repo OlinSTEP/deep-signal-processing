@@ -26,9 +26,19 @@ class AudioInputEncoder(AbstractInputEncoder):
     def __init__(self, config):
         super().__init__(config)
 
-        # TODO: Move to config
-        self.max_ms = 3000
-        self.aug = False
+        # Padding
+        self.max_ms = config.max_ms
+
+        # Augmentations
+        self.aug = config.aug
+        self.aug_pad = config.aug_pad
+        self.aug_shift = config.aug_shift
+        self.aug_spec = config.aug_spec
+
+        # Mel spectogram
+        self.n_fft = config.n_fft
+        self.n_mels = config.n_mels
+        self.hop_len = config.hop_len
 
     def fit(self, inputs):
         spectogram = self.transform(next(inputs), False)
@@ -44,13 +54,15 @@ class AudioInputEncoder(AbstractInputEncoder):
 
     def _transform(self, input_, is_train, sample_rate):
         channels = self.process_channels(input_, sample_rate)
-        channels = self.pad_trunc_channels(channels, sample_rate, self.max_ms)
-        if self.aug and is_train:
+        channels = self.pad_trunc_channels(
+            channels, sample_rate, self.max_ms, is_train
+        )
+        if self.aug and is_train and self.aug_shift:
             self.aug_channels(channels)
 
         # (channels, n_mels, time)
         spectogram = self.to_spectogram(channels, sample_rate)
-        if self.aug and is_train:
+        if self.aug and is_train and self.aug_spec:
             spectogram = self.aug_spectogram(spectogram)
 
         return spectogram
@@ -67,7 +79,7 @@ class AudioInputEncoder(AbstractInputEncoder):
         ]
         return resampled
 
-    def pad_trunc_channels(self, channels, sample_rate, max_ms):
+    def pad_trunc_channels(self, channels, sample_rate, max_ms, is_train):
         max_len = sample_rate // 1000 * max_ms
 
         resized_channels = []
@@ -77,7 +89,7 @@ class AudioInputEncoder(AbstractInputEncoder):
                 channel = channel[:max_len]
             elif l < max_len:
                 diff = max_len - l
-                if self.aug:
+                if self.aug and is_train and self.aug_pad:
                     start_pad_len = random.randint(0, diff)
                 else:
                     start_pad_len = 0
@@ -96,16 +108,13 @@ class AudioInputEncoder(AbstractInputEncoder):
             channel[:] = np.roll(channel, shift_amt)
         return channels
 
-    def to_spectogram(
-        self, channels, sample_rate,
-        n_mels=64, n_fft=1024, hop_len=None, top_db=80
-    ):
+    def to_spectogram(self, channels, sample_rate, top_db=80):
         # spec has shape [channel, n_mels, time], where channel is mono, stereo etc
         transform = torchaudio.transforms.MelSpectrogram(
             sample_rate,
-            n_fft=n_fft,
-            hop_length=hop_len,
-            n_mels=n_mels
+            n_fft=self.n_fft,
+            hop_length=self.hop_len,
+            n_mels=self.n_mels
         )
         spectogram = transform(torch.tensor(channels, dtype=torch.float32))
 
@@ -117,7 +126,7 @@ class AudioInputEncoder(AbstractInputEncoder):
 
     def aug_spectogram(
         self, spectogram,
-        max_mask_pct=0.05, n_freq_masks=0, n_time_masks=1
+        max_mask_pct=0.1, n_freq_masks=1, n_time_masks=1
     ):
         _, n_mels, n_steps = spectogram.shape
         mask_value = spectogram.mean()
@@ -173,7 +182,7 @@ class BothMicInputEncoder(AudioInputEncoder):
         """
         Expected to receive channels corresponding to:
         [reg_audio_0, reg_audio_1, throat_audio_0, throat_audio_1]
-        Only uses channels 2 and 3
+        Uses all channels
         """
         # Get sample rate from reg audio
         sample_rate = _get_stereo_sample_rate(input_[:2])

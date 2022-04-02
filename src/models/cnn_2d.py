@@ -20,8 +20,8 @@ class CNN2D(Model):
                 ex: ((3, 1, 16)) would make 1 convolution layer with an 3x3
                 kernel, 1 stride, and 16 output channels
             pools: Iterable containing the max pool length and stride for each
-                convolutional layer. Length < 1 indicates no pooling for the
-                corresponding pooling layer.
+                convolutional layer. None indicates no pooling used. Length < 1
+                indicates no pooling for the corresponding pooling layer.
                 ex: ((2, 2)) would make 1 pooling layer of size 2x2 and 2 stride
             drop_prob: Probability of dropout. Dropout is not used if < 0,
                 otherwise applied between all layers.
@@ -31,6 +31,11 @@ class CNN2D(Model):
         in_channels, _, _ = in_size
         self.convs = nn.ModuleList()
         last_size = in_channels
+
+        # Not setting pools means no pooling used
+        if not config.pools:
+            config.pools = [(0, 0) for _ in config.convs]
+
         for conv_params, pool_params in zip(config.convs, config.pools):
             kernel_len, kernel_stride, out_channels = conv_params
             pool_len, pool_stride = pool_params

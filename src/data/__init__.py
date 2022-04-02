@@ -24,3 +24,10 @@ class BothMicClassificationDataset(Dataset):
     loader_cls = AudioLoader
     input_encoder_cls = BothMicInputEncoder
     target_encoder_cls = ClassificationEncoder
+
+
+DATASETS = {
+    "reg_mic_classif": RegMicClassificationDataset,
+    "throat_mic_classif": ThroatMicClassificationDataset,
+    "both_mic_classif": BothMicClassificationDataset,
+}

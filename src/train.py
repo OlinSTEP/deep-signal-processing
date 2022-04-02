@@ -1,25 +1,27 @@
 import sys
+from multiprocessing import cpu_count
 
 import wandb
 import torch
 from tqdm import tqdm
 
+
 from .config import config_from_args, WANDB_EXCLUDE_KEYS
-from .data import RegMicClassificationDataset, ThroatMicClassificationDataset
-from .models import MODELS
+from .data import DATASETS
+from .models import MODELS, OPTS, LOSSES
 from .evaluate import calc_metrics, evaluate
 
 
 def build_datasets(config, device):
-    # dataset = RegMicClassificationDataset(config)
-    dataset = ThroatMicClassificationDataset(config)
+    dataset_cls = DATASETS[config.dataset]
+    dataset = dataset_cls(config)
     train_set, dev_set, test_set = dataset.split()
 
     train_loader = torch.utils.data.DataLoader(
         train_set,
         shuffle=True,
         batch_size=config.batch_size,
-        num_workers=(8 if device == "cuda" else 0),
+        num_workers=(cpu_count() if device == "cuda" else 0),
         pin_memory=(device == "cuda"),
         collate_fn=dataset.collate_fn
     )
@@ -50,14 +52,14 @@ def build_model(config, dataset):
 
 
 def build_optimizer(config, model):
-    # TODO: Add type selection
-    opt = torch.optim.Adam(model.parameters(), lr=config.lr)
+    opt_cls = OPTS[config.opt]
+    opt = opt_cls(model.parameters(), lr=config.lr)
     return opt
 
 
 def build_loss_fn(config):
-    # TODO: Add type selection
-    loss_fn = torch.nn.CrossEntropyLoss()
+    loss_cls = LOSSES[config.loss]
+    loss_fn = loss_cls()
     return loss_fn
 
 
@@ -66,6 +68,7 @@ def train(
     dataset, train_loader, dev_loader,
     model, opt, loss_fn
 ):
+    print("Starting training...")
     model.train()
     for epoch in range(config.epochs):
         losses = []
@@ -114,7 +117,7 @@ def main(args):
     loss_fn = build_loss_fn(config)
 
     wandb.init(
-        project="Audio Signal Processing",
+        project=config.project,
         entity="step-emg",
         config=config,
         name=config.name,
@@ -129,7 +132,6 @@ def main(args):
         log_freq=(len(dataset) // config.batch_size) * (config.epochs // 10)
     )
 
-    print("Starting training...")
     train(
         config, device,
         dataset, train_loader, dev_loader,
