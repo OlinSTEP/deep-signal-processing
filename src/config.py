@@ -1,5 +1,7 @@
 import argparse
 
+import json
+
 from .models import MODELS, OPTS, LOSSES
 from .data import DATASETS
 
@@ -7,11 +9,41 @@ from .data import DATASETS
 WANDB_EXCLUDE_KEYS = ["name", "group", "notes"]
 
 
+def load_config(args):
+    """
+    Add defaults set in config file to arg list if value was not specified in
+    arg list. Useful for defining a second set of defaults more specific than
+    the global defaults. Json keys should be arguments (without '--') and values
+    should be strings as they would be if inputted as command line args
+
+    Ex: Putting together a audio_processing.json config for audio specific
+    defaults like --dataset throat_mic_classif
+    """
+    try:
+        index = args.index("--config")
+    except ValueError:
+        return
+    assert len(args) > index, "--config arg missing"
+
+    config_path = args[index + 1]
+    with open(config_path, "r") as f:
+        config = json.load(f)
+
+    # Set of passed args with -- removed from in front
+    passed_args = set([a[2:] for a in args if "--" in a])
+
+    for key, value in config.items():
+        # If arg in config not passed, add it to the argument list
+        if key not in passed_args:
+            args.append("--" + key)
+            args.append(str(value))
+
+
 # PARSING TYPES
 
 def conv_params(s):
     try:
-        kernel_len, kernel_stride, out_size = map(int, s.split(''))
+        kernel_len, kernel_stride, out_size = map(int, s.split(","))
         return kernel_len, kernel_stride, out_size
     except:
         raise argparse.ArgumentError(
@@ -21,7 +53,7 @@ def conv_params(s):
 
 def pool_params(s):
     try:
-        pool_len, pool_stride = map(int, s.split(''))
+        pool_len, pool_stride = map(int, s.split(","))
         return pool_len, pool_stride
     except:
         raise argparse.ArgumentError(
@@ -46,6 +78,18 @@ def validate_config(config):
 
 def config_from_args(args):
     parser = argparse.ArgumentParser("Train Signal Processing Model")
+
+    # We define the arg here so that it shows when we run --help
+    # config.config should never actually be used
+    parser.add_argument(
+        "--config", type=str,
+        default="config/test_config.json",
+        help=(
+            "Path to config to load. Overwrites global defaults, but is"
+            " overwritten by any command line arguments."
+        )
+    )
+    load_config(args)
 
     # WandB
     parser.add_argument(
@@ -178,17 +222,31 @@ def config_from_args(args):
     parser.add_argument(
         "--fcs", type=int, nargs='+',
         default=[128],
-        help="Fully connected layers. See any model docstring for format"
+        help=(
+            "Fully connected layers. Pass neurons per layer separated by "
+            "spaces. Ex: For a model with 128 then 64 neurons, pass "
+            "'--fcs 128 64'"
+        )
     )
     parser.add_argument(
         "--convs", type=conv_params, nargs='+',
         default=[(5, 2, 8), (3, 2, 16), (3, 2, 32), (3, 2, 64)],
-        help="CNN layers. See CNN[1|2]D docstring for format"
+        help=(
+            "CNN layers. Pass kernel size, stride and output channels seperated"
+            " by commas, with layers separated by spaces. Ex: For a model with "
+            "two layers of kernel size 3, stride 1, out channel 8, pass "
+            "'--convs 3,1,8 3,1,8'"
+        )
     )
     parser.add_argument(
         "--pools", type=pool_params, nargs='+',
         default=None,
-        help="Pooling layers. See CNN[1|2]D docstring for format"
+        help=(
+            "Pooling layers. Pass pool size and stride seperated by commas, "
+            "with layers separated by spaces. Ex: For a model with "
+            "two layers of pooling of size 3, stride 1 pass "
+            "'--pools 3,1 3,1'"
+        )
     )
 
     ## Regularization
@@ -234,5 +292,6 @@ def config_from_args(args):
     config = parser.parse_args(args)
 
     validate_config(config)
+
 
     return config

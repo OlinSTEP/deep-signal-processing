@@ -1,0 +1,24 @@
+{
+  "project": "Audio Signal Processing",
+  "dataset": "throat_mic_classif",
+
+  "stratify": "1",
+  "aug_spec": "1",
+
+  "max_ms": "2000",
+  "n_fft": "4096",
+  "n_mels": "128",
+  "hop_len": "2048",
+
+  "model": "2d_cnn",
+  "fcs": "128",
+  "convs": "5,2,8 3,2,16, 3,2,32, 3,2,64",
+  "pools": "0,0 0,0 0,0 0,0",
+
+  "opt": "adam",
+  "loss": "cross_entropy",
+
+  "lr": "0.0001",
+  "epochs": "500",
+  "batch_size": "128"
+}
