@@ -13,6 +13,7 @@ class AudioLoader(AbstractLoader):
         super().__init__(config)
 
         self.stratify = config.stratify
+        self.load_into_memory = config.load_into_memory
 
         self.train_idxs = {}
 
@@ -37,6 +38,11 @@ class AudioLoader(AbstractLoader):
                 throat_path = os.path.join(session_dir, f"{idx}_throat_audio.wav")
                 self.files.append((json_path, reg_path, throat_path))
 
+        if self.load_into_memory:
+            self.load_into_memory = False
+            self.data = [self.load(i) for i in range(len(self))]
+            self.load_into_memory = True
+
     def load(self, index):
         """
         Loads a single datapoint from the disk
@@ -48,6 +54,9 @@ class AudioLoader(AbstractLoader):
             [reg_audio_0, reg_audio_1, throat_audio_0, throat_audio_1]
             Target is a single value
         """
+        if self.load_into_memory:
+            return self.data[index]
+
         json_path, reg_path, throat_path = self.files[index]
 
         with open(json_path, "r") as f:

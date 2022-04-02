@@ -19,9 +19,12 @@ def load_config(args):
     Ex: Putting together a audio_processing.json config for audio specific
     defaults like --dataset throat_mic_classif
     """
+    config_path = None
     for a in args:
         if "--config" in a:
             config_path = a.split("=")[1]
+    if config_path is None:
+        return
 
     with open(config_path, "r") as f:
         config = json.load(f)
@@ -144,6 +147,11 @@ def config_from_args(args):
             "Type of dataset to use. Options: "
             f"{', '.join(DATASETS.keys())}"
         )
+    )
+    parser.add_argument(
+        "--load_into_memory", type=int,
+        default=0,
+        help="Whether to load dataset into RAM or not. 1 for True, 0 for False"
     )
 
     ## Splits
