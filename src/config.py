@@ -6,7 +6,7 @@ from .models import MODELS, OPTS, LOSSES
 from .data import DATASETS
 
 
-WANDB_EXCLUDE_KEYS = ["name", "group", "notes"]
+WANDB_EXCLUDE_KEYS = ["name", "group", "notes", "project", "wandb_off"]
 
 
 def load_config(args):
@@ -90,6 +90,15 @@ def config_from_args(args):
         )
     )
     load_config(args)
+
+    parser.add_argument(
+        "--sweep_support", type=int,
+        default=0,
+        help=(
+            "Unused argument, meant for running multiple runs in a WandB grid "
+            "search with the same arguments"
+        )
+    )
 
     # WandB
     parser.add_argument(
