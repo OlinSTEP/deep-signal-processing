@@ -9,7 +9,7 @@ from .data import DATASETS
 WANDB_EXCLUDE_KEYS = ["name", "group", "notes", "project", "wandb_off"]
 
 
-def load_config(args):
+def load_config(args, parsed_args):
     """
     Add defaults set in config file to arg list if value was not specified in
     arg list. Useful for defining a second set of defaults more specific than
@@ -19,18 +19,14 @@ def load_config(args):
     Ex: Putting together a audio_processing.json config for audio specific
     defaults like --dataset throat_mic_classif
     """
-    config_path = None
-    for a in args:
-        if "--config" in a:
-            config_path = a.split("=")[1]
-    if config_path is None:
+    if parsed_args.config is None:
         return
 
-    with open(config_path, "r") as f:
+    with open(parsed_args.config, "r") as f:
         config = json.load(f)
 
     # Set of passed args with -- removed from in front
-    passed_args = set([a.split("=")[0][2:] for a in args])
+    passed_args = set([a.split("=")[0][2:] for a in args if "--" in a])
 
     for key, value in config.items():
         # If arg in config not passed, add it to the argument list
@@ -65,7 +61,7 @@ def pool_params(s):
 
 def validate_convs_pools(config):
     if config.pools is not None and len(config.convs) != len(config.pools):
-        raise argparse.ArgumentError(
+        raise ValueError(
             "Equal number of conv layers and pooling layers must be defined. "
             f"{len(config.convs)} conv layers and"
             f"{len(config.pools)} pooling layers passed."
@@ -74,7 +70,7 @@ def validate_convs_pools(config):
 
 def validate_aug_cache(config):
     if config.aug and config.cache_processed:
-        raise argparse.ArgumentError(
+        raise ValueError(
             "Augmentations do not work with cache_processed! Use cache_raw or "
             "don't use augmentations"
         )
@@ -92,13 +88,12 @@ def config_from_args(args):
     # config.config should never actually be used
     parser.add_argument(
         "--config", type=str,
-        default="config/test_config.json",
+        default=None,
         help=(
             "Path to config to load. Overwrites global defaults, but is"
             " overwritten by any command line arguments."
         )
     )
-    load_config(args)
 
     parser.add_argument(
         "--sweep_support", type=int,
@@ -325,9 +320,12 @@ def config_from_args(args):
         help="How many epochs to wait before logging"
     )
 
+    # Load once so we can use args to load config
+    parsed = parser.parse_args(args)
+    load_config(args, parsed)
+
     config = parser.parse_args(args)
 
     validate_config(config)
-
 
     return config
