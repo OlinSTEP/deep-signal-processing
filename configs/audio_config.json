@@ -3,22 +3,22 @@
   "dataset": "throat_mic_classif",
 
   "stratify": "1",
+  "aug": "0",
   "aug_spec": "1",
 
   "max_ms": "2000",
-  "n_fft": "4096",
+  "n_fft": "2048",
   "n_mels": "128",
-  "hop_len": "2048",
+  "hop_len": "1024",
 
   "model": "2d_cnn",
   "fcs": "128",
-  "convs": "5,2,8 3,2,16, 3,2,32, 3,2,64",
-  "pools": "0,0 0,0 0,0 0,0",
+  "convs": "5,2,8 3,2,16 3,2,32 3,2,64",
 
   "opt": "adam",
   "loss": "cross_entropy",
 
   "lr": "0.0001",
-  "epochs": "500",
-  "batch_size": "128"
+  "epochs": "512",
+  "batch_size": "256"
 }

@@ -19,18 +19,15 @@ def load_config(args):
     Ex: Putting together a audio_processing.json config for audio specific
     defaults like --dataset throat_mic_classif
     """
-    try:
-        index = args.index("--config")
-    except ValueError:
-        return
-    assert len(args) > index, "--config arg missing"
+    for a in args:
+        if "--config" in a:
+            config_path = a.split("=")[1]
 
-    config_path = args[index + 1]
     with open(config_path, "r") as f:
         config = json.load(f)
 
     # Set of passed args with -- removed from in front
-    passed_args = set([a[2:] for a in args if "--" in a])
+    passed_args = set([a.split("=")[0][2:] for a in args])
 
     for key, value in config.items():
         # If arg in config not passed, add it to the argument list
@@ -43,8 +40,8 @@ def load_config(args):
 
 def conv_params(s):
     try:
-        kernel_len, kernel_stride, out_size = map(int, s.split(","))
-        return kernel_len, kernel_stride, out_size
+        layers = [l.split(",") for l in s.split()]
+        return [(int(l),int(s),int(o)) for l,s,o in layers]
     except:
         raise argparse.ArgumentError(
             "Argument must be of form kernel_len,kernel_stride,out_size"
@@ -102,7 +99,7 @@ def config_from_args(args):
 
     # WandB
     parser.add_argument(
-        "---project", type=str,
+        "--project", type=str,
         default="Audio Signal Processing",
         help="WandB project name"
     )
@@ -130,7 +127,7 @@ def config_from_args(args):
     # Filepaths
     parser.add_argument(
         "--data", type=str,
-        default="data/processed_data/SpringBreakAudio",
+        default="data/processed_data/quiet_front-ear",
         help="Dataset to load. Should contain session dirs within"
     )
     parser.add_argument(
@@ -238,13 +235,13 @@ def config_from_args(args):
         )
     )
     parser.add_argument(
-        "--convs", type=conv_params, nargs='+',
+        "--convs", type=conv_params,
         default=[(5, 2, 8), (3, 2, 16), (3, 2, 32), (3, 2, 64)],
         help=(
             "CNN layers. Pass kernel size, stride and output channels seperated"
             " by commas, with layers separated by spaces. Ex: For a model with "
             "two layers of kernel size 3, stride 1, out channel 8, pass "
-            "'--convs 3,1,8 3,1,8'"
+            '--convs "3,1,8 3,1,8"'
         )
     )
     parser.add_argument(
