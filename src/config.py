@@ -9,30 +9,22 @@ from .data import DATASETS
 WANDB_EXCLUDE_KEYS = ["name", "group", "notes", "project", "wandb_off"]
 
 
-def load_config(args, parsed_args):
+def load_defaults(parser, config_path):
     """
-    Add defaults set in config file to arg list if value was not specified in
-    arg list. Useful for defining a second set of defaults more specific than
-    the global defaults. Json keys should be arguments (without '--') and values
-    should be strings as they would be if inputted as command line args
+    Add defaults set in config file to parser. Useful for defining a second set
+    of defaults more specific than the global defaults defined in this file.
 
     Ex: Putting together a audio_processing.json config for audio specific
     defaults like --dataset throat_mic_classif
+
+    Json keys should be arguments (without '--') and values should be strings as
+    they would be if input as command line args
     """
-    if parsed_args.config is None:
+    if config_path is None:
         return
-
-    with open(parsed_args.config, "r") as f:
-        config = json.load(f)
-
-    # Set of passed args with -- removed from in front
-    passed_args = set([a.split("=")[0][2:] for a in args if "--" in a])
-
-    for key, value in config.items():
-        # If arg in config not passed, add it to the argument list
-        if key not in passed_args:
-            args.append("--" + key)
-            args.append(str(value))
+    with open(config_path, "r") as f:
+        loaded_defaults = json.load(f)
+    parser.set_defaults(**loaded_defaults)
 
 
 # PARSING TYPES
@@ -82,20 +74,19 @@ def validate_config(config):
 
 
 def config_from_args(args):
-    parser = argparse.ArgumentParser(
-        description="Train Signal Processing Model",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    # We define the arg here so that it shows when we run --help
-    # config.config should never actually be used
-    parser.add_argument(
+    config_parser = argparse.ArgumentParser(add_help=False)
+    config_parser.add_argument(
         "--config", type=str,
         default=None,
         help=(
             "Path to config to load. Overwrites global defaults, but is"
             " overwritten by any command line arguments."
         )
+    )
+    parser = argparse.ArgumentParser(
+        description="Train Signal Processing Model",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[config_parser]
     )
 
     parser.add_argument(
@@ -320,12 +311,9 @@ def config_from_args(args):
         help="How many epochs to wait before logging"
     )
 
-    # Load once so we can use args to load config
-    parsed = parser.parse_args(args)
-    load_config(args, parsed)
-
+    parsed_args, _ = config_parser.parse_known_args(args)
+    load_defaults(parser, parsed_args.config)
     config = parser.parse_args(args)
-
     validate_config(config)
 
     return config
