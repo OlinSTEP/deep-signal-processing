@@ -40,9 +40,13 @@ def train(
         save(config, model)
 
         metrics = {}
-        metrics.update(calc_metrics(losses, accuracies, prefix="Train"))
+        metrics.update(calc_metrics(
+            losses, accuracies, prefix="Train"
+        ))
         if epoch % config.log_freq == 0 or epoch + 1 == config.epochs:
-            metrics.update(evaluate(device, dataset, dev_loader, model, loss_fn))
+            metrics.update(evaluate(
+                device, dataset, dev_loader, model, loss_fn, prefix="Val"
+            ))
         wandb.log(metrics)
 
         print(

@@ -32,14 +32,6 @@ def calc_metrics(
     # sklearn wants idxs as labels and preds are idxs
     target_labels = [i for i in range(len(target_labels))]
 
-    micro_prec, micro_recall, micro_f1, _ = precision_recall_fscore_support(
-        labels, preds,
-        average="micro", zero_division=0, labels=target_labels
-    )
-    metrics["Micro Precision"] = micro_prec
-    metrics["Micro Recall"] = micro_recall
-    metrics["Micro F1"] = micro_f1
-
     macro_prec, macro_recall, macro_f1, _ = precision_recall_fscore_support(
         labels, preds,
         average="macro", zero_division=0, labels=target_labels
@@ -59,8 +51,7 @@ def calc_metrics(
     return metrics
 
 
-def evaluate(device, dataset, dataloader, model, loss_fn):
-    # TODO: Add support for testset
+def evaluate(device, dataset, dataloader, model, loss_fn, prefix=""):
     losses = []
     accuracies = []
     all_labels = []
@@ -85,5 +76,5 @@ def evaluate(device, dataset, dataloader, model, loss_fn):
         losses, accuracies,
         labels=all_labels, preds=all_preds,
         target_labels=dataset.target_encoder.target_labels,
-        prefix="Val"
+        prefix=prefix
     )

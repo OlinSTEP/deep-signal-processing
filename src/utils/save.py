@@ -1,7 +1,8 @@
 import os
 import pickle
+import argparse
 
-from src.config import build_parsers
+from src.config import build_parsers, WANDB_EXCLUDE_KEYS
 from src.utils.build import build
 
 
@@ -10,6 +11,14 @@ def save(config, model, name="model"):
 
     model.save(name, save_dir)
     config_save_path = os.path.join(save_dir, "config.pkl")
+
+    # Copy the config without WandB options
+    config_contents = {
+        key: value
+        for key, value in vars(config).items()
+        if key not in WANDB_EXCLUDE_KEYS
+    }
+    config = argparse.Namespace(**config_contents)
     with open(config_save_path, "wb") as f:
         pickle.dump(config, f)
     print(f"Config saved to {config_save_path}")
@@ -19,6 +28,7 @@ def load(args, load_dir, device):
     config_load_path = os.path.join(load_dir, "config.pkl")
     with open(config_load_path, "rb") as f:
         loaded_config = pickle.load(f)
+    print(f"Config loaded from {config_load_path}")
 
     # Overwrite with any new command line options
     _, parser = build_parsers()
