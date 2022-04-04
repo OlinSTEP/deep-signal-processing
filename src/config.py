@@ -73,7 +73,7 @@ def validate_config(config):
     validate_aug_cache(config)
 
 
-def config_from_args(args):
+def build_parsers():
     config_parser = argparse.ArgumentParser(add_help=False)
     config_parser.add_argument(
         "--config", type=str,
@@ -83,6 +83,7 @@ def config_from_args(args):
             " overwritten by any command line arguments."
         )
     )
+
     parser = argparse.ArgumentParser(
         description="Train Signal Processing Model",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -310,6 +311,12 @@ def config_from_args(args):
         default=8,
         help="How many epochs to wait before logging"
     )
+
+    return config_parser, parser
+
+
+def config_from_args(args):
+    config_parser, parser = build_parsers()
 
     parsed_args, _ = config_parser.parse_known_args(args)
     load_defaults(parser, parsed_args.config)

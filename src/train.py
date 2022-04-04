@@ -8,7 +8,7 @@ import torch
 from tqdm import tqdm
 
 
-from .config import config_from_args, WANDB_EXCLUDE_KEYS
+from .config import config_from_args, build_parsers, WANDB_EXCLUDE_KEYS
 from .data import DATASETS
 from .models import MODELS, OPTS, LOSSES
 from .evaluate import calc_metrics, evaluate
@@ -86,22 +86,27 @@ def save(config, model, name="model"):
     print(f"Config saved to {config_save_path}")
 
 
-def load(config, save_dir, dataset, device):
-    config_load_path = os.path.join(save_dir, "config.pkl")
+def load(args, load_dir, device):
+    config_load_path = os.path.join(load_dir, "config.pkl")
     with open(config_load_path, "rb") as f:
         loaded_config = pickle.load(f)
 
-    build_objs = build(loaded_config, device)
+    # Overwrite with any new command line options
+    _, parser = build_parsers()
+    config = parser.parse_args(args, namespace=loaded_config)
+
+    build_objs = build(config, device)
     dataset, train_loader, dev_loader, test_loader = build_objs[:4]
     model, opt, loss_fn = build_objs[4:]
 
-    model_load_path = os.path.join(save_dir, "model.h5")
+    model_load_path = os.path.join(load_dir, "model.h5")
     model.load(model_load_path)
 
-    return (
+    build_objs = (
         dataset, train_loader, dev_loader, test_loader,
         model, opt, loss_fn
     )
+    return config, build_objs
 
 
 def train(
@@ -153,7 +158,10 @@ def main(args):
     config = config_from_args(args)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    built_objs = build(config, device)
+    if config.load_dir:
+        config, built_objs = load(args, config.load_dir, device)
+    else:
+        built_objs = build(config, device)
     dataset, train_loader, dev_loader, _ = built_objs[:4]
     model, opt, loss_fn = built_objs[4:]
 
