@@ -142,6 +142,11 @@ def config_from_args(args):
         default="data/models/tmp/",
         help="Directory to save model to"
     )
+    parser.add_argument(
+        "--load_dir", type=str,
+        default=None,
+        help="Directory to load model and config from"
+    )
 
     # Dataset hyperparameters
     parser.add_argument(

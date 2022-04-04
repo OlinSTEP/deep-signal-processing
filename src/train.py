@@ -1,4 +1,6 @@
+import os
 import sys
+import pickle
 from multiprocessing import cpu_count
 
 import wandb
@@ -63,6 +65,45 @@ def build_loss_fn(config):
     return loss_fn
 
 
+def build(config, device):
+    dataset, train_loader, dev_loader, test_loader = build_datasets(config, device)
+    model = build_model(config, dataset).to(device)
+    opt = build_optimizer(config, model)
+    loss_fn = build_loss_fn(config)
+    return (
+        dataset, train_loader, dev_loader, test_loader,
+        model, opt, loss_fn
+    )
+
+
+def save(config, model, name="model"):
+    save_dir = os.path.join(config.save_dir, name)
+
+    model.save(name, save_dir)
+    config_save_path = os.path.join(save_dir, "config.pkl")
+    with open(config_save_path, "wb") as f:
+        pickle.dump(config, f)
+    print(f"Config saved to {config_save_path}")
+
+
+def load(config, save_dir, dataset, device):
+    config_load_path = os.path.join(save_dir, "config.pkl")
+    with open(config_load_path, "rb") as f:
+        loaded_config = pickle.load(f)
+
+    build_objs = build(loaded_config, device)
+    dataset, train_loader, dev_loader, test_loader = build_objs[:4]
+    model, opt, loss_fn = build_objs[4:]
+
+    model_load_path = os.path.join(save_dir, "model.h5")
+    model.load(model_load_path)
+
+    return (
+        dataset, train_loader, dev_loader, test_loader,
+        model, opt, loss_fn
+    )
+
+
 def train(
     config, device,
     dataset, train_loader, dev_loader,
@@ -89,7 +130,7 @@ def train(
             acc = torch.sum(pred == labels) / labels.size()[0]
             accuracies.append(acc.item())
             losses.append(loss.item())
-        model.save("model", config.save_dir)
+        save(config, model)
 
         metrics = {}
         metrics.update(calc_metrics(losses, accuracies, prefix="Train"))
@@ -112,11 +153,9 @@ def main(args):
     config = config_from_args(args)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    print("Processing data...")
-    dataset, train_loader, dev_loader, _ = build_datasets(config, device)
-    model = build_model(config, dataset).to(device)
-    opt = build_optimizer(config, model)
-    loss_fn = build_loss_fn(config)
+    built_objs = build(config, device)
+    dataset, train_loader, dev_loader, _ = built_objs[:4]
+    model, opt, loss_fn = built_objs[4:]
 
     wandb.init(
         project=config.project,
