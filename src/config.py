@@ -82,7 +82,10 @@ def validate_config(config):
 
 
 def config_from_args(args):
-    parser = argparse.ArgumentParser("Train Signal Processing Model")
+    parser = argparse.ArgumentParser(
+        description="Train Signal Processing Model",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
     # We define the arg here so that it shows when we run --help
     # config.config should never actually be used
@@ -152,10 +155,8 @@ def config_from_args(args):
     parser.add_argument(
         "--dataset", type=str,
         default="throat_mic_classif",
-        help=(
-            "Type of dataset to use. Options: "
-            f"{', '.join(DATASETS.keys())}"
-        )
+        choices=set(DATASETS.keys()),
+        help="Type of dataset to use."
     )
     parser.add_argument(
         "--cache_raw", type=int,
@@ -243,10 +244,8 @@ def config_from_args(args):
     parser.add_argument(
         "--model", type=str,
         default="2d_cnn",
-        help=(
-            "Type of model to train. Options: "
-            f"{', '.join(MODELS.keys())}"
-        )
+        choices=set(MODELS.keys()),
+        help="Type of model to train."
     )
 
     ## Layers
@@ -291,18 +290,14 @@ def config_from_args(args):
     parser.add_argument(
         "--opt", type=str,
         default="adam",
-        help=(
-            "Type of optimizer to use. Options: "
-            f"{', '.join(OPTS.keys())}"
-        )
+        choices=set(OPTS.keys()),
+        help="Type of optimizer to use."
     )
     parser.add_argument(
         "--loss", type=str,
         default="cross_entropy",
-        help=(
-            "Type of optimizer to use. Options: "
-            f"{', '.join(LOSSES.keys())}"
-        )
+        choices=set(LOSSES.keys()),
+        help="Type of optimizer to use."
     )
     parser.add_argument(
         "--lr", type=float,
