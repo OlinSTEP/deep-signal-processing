@@ -316,7 +316,7 @@ def config_from_args(args):
     )
     parser.add_argument(
         "--log_freq", type=int,
-        default=16,
+        default=8,
         help="How many epochs to wait before logging"
     )
 
