@@ -37,7 +37,9 @@ def train(
             acc = torch.sum(pred == labels) / labels.size()[0]
             accuracies.append(acc.item())
             losses.append(loss.item())
-        save(config, model)
+
+        if epoch % config.log_freq == 0 or epoch + 1 == config.epochs:
+            save(config, model)
 
         metrics = {}
         metrics.update(calc_metrics(
