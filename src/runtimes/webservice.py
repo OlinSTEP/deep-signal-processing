@@ -1,5 +1,6 @@
 import io
 import sys
+import base64
 
 import torch
 import scipy
@@ -15,12 +16,11 @@ dataset = None
 
 @app.route("/", methods=["POST"])
 def process_image():
-    if "audio_data" not in request.files:
-        return "audio_data file not found", 400
-
-
-    file = request.files['audio_data']
-    samplerate, data = scipy.io.wavfile.read(io.BytesIO(file.read()))
+    if "audio" not in request.files:
+        return "audio file not found", 400
+    audio = request.json['audio']
+    audio_decoded = base64.b64decode(audio)
+    samplerate, data = scipy.io.wavfile.read(io.BytesIO(audio_decoded))
 
     input_data = [
         (0, []),
