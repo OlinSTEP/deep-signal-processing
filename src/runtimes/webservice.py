@@ -2,7 +2,7 @@ import io
 import sys
 
 import torch
-import soundfile as sf
+import scipy
 from flask import Flask, request
 
 from src.config import config_from_args
@@ -20,7 +20,8 @@ def process_image():
 
 
     file = request.files['audio_data']
-    data, samplerate = sf.read(io.BytesIO(file.read()))
+    samplerate, data = scipy.io.wavfile.read(io.BytesIO(file.read()))
+
     input_data = [
         (0, []),
         (0, []),
@@ -33,7 +34,8 @@ def process_image():
     out = model(processed_data[None, :])
     _, pred = torch.max(out, dim=1)
 
-    out_idx = int(pred.numpy()[0])
+    out_idx = int(pred.cpu().numpy()[0])
+    print(dataset.target_encoder.inverse_transform(out_idx))
     return {'msg': 'success', "pred_idx": out_idx}
 
 def main(args):
