@@ -2,9 +2,10 @@
   "project": "Audio Signal Processing",
   "dataset": "throat_mic_classif",
 
-  "cache_processed": "1",
+  "cache_processed": "0",
+  "cache_raw": "1",
   "stratify": "1",
-  "aug": "0",
+  "aug": "1",
   "aug_spec": "1",
 
   "max_ms": "2000",
