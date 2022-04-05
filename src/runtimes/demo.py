@@ -1,5 +1,6 @@
 import sys
 import queue
+import threading
 
 import torch
 import sounddevice as sd
@@ -9,34 +10,44 @@ from src.config import config_from_args
 from src.utils.save import load
 
 
-def record(samplerate=48000, device=6, channels=1):
-    """
-    Primarily pulled from:
-    https://python-sounddevice.readthedocs.io/en/0.4.4/examples.html#recording-with-arbitrary-duration
-    """
+class KeyboardThread(threading.Thread):
+    def __init__(self, input_cbk=None, name='keyboard-input-thread'):
+        self.input_cbk = input_cbk
+        super(KeyboardThread, self).__init__(name=name)
+        self.start()
+
+    def run(self):
+        self.input_cbk(input())  # Waits to get input + Return
+        return
+
+def record(samplerate=48000, device=0, channels=2):
     q = queue.Queue()
+    b = queue.Queue()
+
+    def unblock(_):
+        b.put(1)
 
     def callback(indata, frames, time, status):
         if status:
             print(status, file=sys.stderr)
         q.put(indata.copy())
 
-    try:
-        print()
-        print('press <enter> to start the recording')
-        input()
+    print()
+    print('press <enter> to start the recording')
+    input()
+    kthread = KeyboardThread(unblock)
+    with sd.InputStream(samplerate=samplerate, device=device,
+                        channels=channels, callback=callback):
+        print('Recording! <enter> to stop the recording')
+        while b.empty():
+            pass
 
-        with sd.InputStream(samplerate=samplerate, device=device,
-                            channels=channels, callback=callback):
-            print('Recording! Press Ctrl+C to stop the recording')
-            while True:
-                pass
-    except KeyboardInterrupt:
-        data = []
-        while not q.empty():
-            data.append(q.get())
-        data = np.concatenate(data, axis=0)
-        return data
+    kthread.join()
+    data = []
+    while not q.empty():
+        data.append(q.get())
+    data = np.concatenate(data, axis=0)
+    return data
 
 
 def main(args):
