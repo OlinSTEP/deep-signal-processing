@@ -16,7 +16,7 @@ class Model(nn.Module):
         torch.save(self.state_dict(), model_save_path)
         print(f"Model saved to {model_save_path}")
 
-    def load(self, load_file):
-        state_dict = torch.load(load_file)
+    def load(self, load_file, device):
+        state_dict = torch.load(load_file, map_location=device)
         self.load_state_dict(state_dict)
         print(f"Model loaded from {load_file}")

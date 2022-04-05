@@ -39,7 +39,7 @@ def load(args, load_dir, device):
     model, opt, loss_fn = build_objs[4:]
 
     model_load_path = os.path.join(load_dir, "model.h5")
-    model.load(model_load_path)
+    model.load(model_load_path, device)
 
     build_objs = (
         dataset, train_loader, dev_loader, test_loader,
