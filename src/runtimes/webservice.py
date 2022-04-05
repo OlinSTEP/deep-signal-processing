@@ -13,11 +13,12 @@ from src.utils.save import load
 app = Flask(__name__)
 model = None
 dataset = None
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 @app.route("/", methods=["POST"])
 def process_image():
-    if "audio" not in request.files:
-        return "audio file not found", 400
+    if "audio" not in request.json:
+        return "audio not found", 400
     audio = request.json['audio']
     audio_decoded = base64.b64decode(audio)
     samplerate, data = scipy.io.wavfile.read(io.BytesIO(audio_decoded))
@@ -25,10 +26,10 @@ def process_image():
     input_data = [
         (0, []),
         (0, []),
-        (samplerate, data[:, 0]),
-        (samplerate, data[:, 1]),
+        (samplerate, data),
+        (samplerate, data),
     ]
-    processed_data = dataset.input_encoder.transform(input_data, False)
+    processed_data = dataset.input_encoder.transform(input_data, False).to(device)
 
 
     out = model(processed_data[None, :])
@@ -40,7 +41,6 @@ def process_image():
 
 def main(args):
     config = config_from_args(args)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if config.load_dir is None:
         raise ValueError("load_dir must be specified for running the webservice")
