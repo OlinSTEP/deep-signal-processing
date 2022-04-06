@@ -26,6 +26,8 @@ class AudioInputEncoder(AbstractInputEncoder):
     def __init__(self, config):
         super().__init__(config)
 
+        self.samplerate = config.samplerate
+
         # Padding
         self.max_ms = config.max_ms
 
@@ -169,7 +171,8 @@ class ThroatMicInputEncoder(AudioInputEncoder):
         Only uses channels 2 and 3
         """
         # Only use the throat_audio channels
-        sample_rate = _get_stereo_sample_rate(input_[2:])
+        # sample_rate = _get_stereo_sample_rate(input_[2:])
+        sample_rate = self.samplerate
         return self._transform(
             input_[2:],
             is_train,

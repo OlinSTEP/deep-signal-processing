@@ -211,6 +211,11 @@ def build_parsers():
 
     ## Audio Specific
     parser.add_argument(
+        "--samplerate", type=int,
+        default=48000,
+        help="Sample rate to resample to. Used in AudioInputEncoder"
+    )
+    parser.add_argument(
         "--n_fft", type=int,
         default=1024,
         help="Size of FFT for mel spectogram. Used in AudioInputEncoder"
