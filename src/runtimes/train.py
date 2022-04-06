@@ -17,6 +17,7 @@ def train(
     model, opt, loss_fn
 ):
     print("Starting training...")
+    top_acc = 0
     model.train()
     for epoch in range(config.epochs):
         losses = []
@@ -38,9 +39,6 @@ def train(
             accuracies.append(acc.item())
             losses.append(loss.item())
 
-        if epoch % config.log_freq == 0 or epoch + 1 == config.epochs:
-            save(config, model)
-
         metrics = {}
         metrics.update(calc_metrics(
             losses, accuracies, prefix="Train"
@@ -49,6 +47,9 @@ def train(
             metrics.update(evaluate(
                 device, dataset, dev_loader, model, loss_fn, prefix="Val"
             ))
+            if metrics["Val Acc"] > top_acc:
+                top_acc = metrics["Val Acc"]
+                save(config, model)
         wandb.log(metrics)
 
         print(

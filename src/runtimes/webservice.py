@@ -31,7 +31,6 @@ def process_image():
     ]
     processed_data = dataset.input_encoder.transform(input_data, False).to(device)
 
-
     out = model(processed_data[None, :])
     _, pred = torch.max(out, dim=1)
 
