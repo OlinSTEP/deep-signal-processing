@@ -16,7 +16,7 @@ dataset = None
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 @app.route("/", methods=["POST"])
-def process_image():
+def process_audio():
     if "audio" not in request.json:
         return "audio not found", 400
     audio = request.json['audio']

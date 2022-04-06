@@ -60,6 +60,7 @@ def main(args):
     dataset = built_objs[0]
     model = built_objs[4]
 
+    model.eval();
     samplerate = 48000
     while True:
         data = record(samplerate=samplerate)
@@ -72,12 +73,17 @@ def main(args):
         processed_data = dataset.input_encoder.transform(input_data, False)
 
         out = model(processed_data[None, :])
+        confidences = torch.nn.functional.softmax(out[0], dim=0)
         _, pred = torch.max(out, dim=1)
         out_idx = int(pred.numpy()[0])
         pred = dataset.target_encoder.target_labels[out_idx]
+
         print()
         print("#" * 70)
         print(f"Predicted label: {pred}")
+        print("Confidences:")
+        for i, c in enumerate(confidences.detach().cpu().numpy()):
+            print(f"  {dataset.target_encoder.target_labels[i]}: {c:.3f}")
         print("#" * 70)
 
 
