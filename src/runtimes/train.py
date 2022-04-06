@@ -61,6 +61,8 @@ def train(
                 f"Dev Loss:   {metrics['Val Loss']:.3f} | "
                 f"Dev Accuracy:   {metrics['Val Acc']:.3f}"
             )
+    print(f"Top Validation Accuracy: {top_acc}")
+    wandb.summary["Top Accuracy"] = top_acc
 
 
 def main(args):
