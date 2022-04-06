@@ -31,11 +31,14 @@ def process_audio():
     ]
     processed_data = dataset.input_encoder.transform(input_data, False).to(device)
 
-    out = model(processed_data[None, :])
+    with torch.no_grad():
+        out = model(processed_data[None, :])
     _, pred = torch.max(out, dim=1)
+    confidences = torch.nn.functional.softmax(out[0], dim=0)
 
-    out_idx = int(pred.cpu().numpy()[0])
+    out_idx = int(pred.detach().cpu().numpy()[0])
     print(dataset.target_encoder.inverse_transform(out_idx))
+    print(list(confidences.detach().cpu().numpy()))
     return {'msg': 'success', "pred_idx": out_idx}
 
 def main(args):
@@ -48,7 +51,7 @@ def main(args):
     global dataset, model
     dataset = built_objs[0]
     model = built_objs[4]
-    model.eval()
+    # model.eval()
 
     app.run(host='0.0.0.0', debug=True)
 
