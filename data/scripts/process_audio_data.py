@@ -153,6 +153,10 @@ def load_targets(file_path):
 def save_datapoint(save_dir, i, datapoint, sample_rates):
     print(f"Writing {os.path.join(save_dir, str(i))}...")
 
+    if len(datapoint["throat"]) / int(float(sample_rates["throat"])) < 0.4:
+        print(f"Sample too short! Skipped. Label: {datapoint['target']}")
+        return;
+
     file_path = os.path.join(save_dir, f"{i}_info.json")
     save_dict = {
         "target": datapoint["target"],
