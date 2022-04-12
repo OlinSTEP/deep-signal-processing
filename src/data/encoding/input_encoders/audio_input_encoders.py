@@ -83,10 +83,11 @@ class AudioInputEncoder(AbstractInputEncoder):
             resample_channel(d, sr, target_sr) if sr != target_sr else d
             for sr, d in zip(sample_rates, filtered)
         ]
-        loud_normed = [
-            loud_norm(sr, d, self.loudness)
-            for sr, d in zip(sample_rates, resampled)
-        ]
+        if self.loudness:
+            loud_normed = [
+                loud_norm(sr, d, self.loudness)
+                for sr, d in zip(sample_rates, resampled)
+            ]
         return loud_normed
 
     def pad_trunc_channels(self, channels, sample_rate, max_ms, is_train):

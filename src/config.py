@@ -152,7 +152,7 @@ def build_parsers():
     )
     parser.add_argument(
         "--cache_raw", type=int,
-        default=0,
+        default=1,
         help="Whether to load dataset into memory or not. 1 for True, 0 for False"
     )
     parser.add_argument(
@@ -192,6 +192,11 @@ def build_parsers():
         help="Whether to use randomly shift data. 1 for True, 0 for False"
     )
     parser.add_argument(
+        "--aug_volume", type=int,
+        default=0,
+        help="Max amount to vary normalized volume by. Disabled if 0"
+    )
+    parser.add_argument(
         "--aug_spec", type=int,
         default=0,
         help="Whether to use randomly mask spectogram. 1 for True, 0 for False"
@@ -218,7 +223,7 @@ def build_parsers():
     parser.add_argument(
         "--loudness", type=int,
         default=40,
-        help="Loudness to normalize to. Used in AudioInputEncoder"
+        help="Loudness to normalize to. Disabled if 0. Used in AudioInputEncoder"
     )
     parser.add_argument(
         "--n_fft", type=int,
