@@ -39,7 +39,9 @@ def notch_harmonics(data, freq, sample_freq):
 
 
 def resample_channel(data, sample_freq, target_freq):
-    data = torch.tensor(data.copy())
-    transform = torchaudio.transforms.Resample(sample_freq, target_freq)
+    data = torch.tensor(data.copy(), dtype=torch.float32)
+    transform = torchaudio.transforms.Resample(
+        sample_freq, target_freq, dtype=torch.float32
+    )
     tensor = transform(data[None, :])
     return tensor[0].numpy()
