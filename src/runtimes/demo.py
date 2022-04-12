@@ -5,6 +5,8 @@ import threading
 import torch
 import sounddevice as sd
 import numpy as np
+import scipy
+import librosa.display
 
 from src.config import config_from_args
 from src.utils.save import load
@@ -50,7 +52,7 @@ def record(samplerate=48000, device=0, channels=2):
     return data
 
 
-def main(args):
+def main(args, graph=True):
     config = config_from_args(args)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -60,7 +62,7 @@ def main(args):
     dataset = built_objs[0]
     model = built_objs[4]
 
-    model.eval();
+    # model.eval();
     samplerate = 48000
     while True:
         data = record(samplerate=samplerate)
@@ -85,6 +87,16 @@ def main(args):
         for i, c in enumerate(confidences.detach().cpu().numpy()):
             print(f"  {dataset.target_encoder.target_labels[i]}: {c:.3f}")
         print("#" * 70)
+
+        if graph:
+            plot_data = processed_data.detach().cpu().numpy()
+            import matplotlib.pyplot as plt
+            plt.figure(figsize=(10, 4))
+            librosa.display.specshow(plot_data[0, :, :], x_axis='time')
+            # plt.colorbar(format='%+2.0f dB')
+            plt.title('Mel spectrogram')
+            plt.tight_layout()
+            plt.show()
 
 
 if __name__ == "__main__":
