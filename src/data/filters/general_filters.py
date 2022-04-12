@@ -21,7 +21,8 @@ def remove_drift(data, sample_frequency):
     # [lowcut, highcut] = [40, 280] are currently arbitrary values
     # typical adult male will have a fundamental frequency from 85 to 155
     # Hz, and that of a typical adult female from 165 to 255 Hz
-    b, a = signal.butter(3, [40, 280], btype='bandpass', fs=sample_frequency)
+    # b, a = signal.butter(3, [40, 280], btype='bandpass', fs=sample_frequency)
+    b, a = signal.butter(3, 2, btype='highpass', fs=sample_frequency)
     return signal.filtfilt(b, a, data)
 
 

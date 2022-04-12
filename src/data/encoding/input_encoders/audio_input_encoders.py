@@ -5,7 +5,7 @@ import torchaudio
 import numpy as np
 
 from .input_encoder import AbstractInputEncoder
-from src.data.filters import filter_audio_channel, resample_channel
+from src.data.filters import filter_audio_channel, resample_channel, loud_norm
 
 
 def _get_stereo_sample_rate(channels):
@@ -26,7 +26,9 @@ class AudioInputEncoder(AbstractInputEncoder):
     def __init__(self, config):
         super().__init__(config)
 
+        # Processing
         self.samplerate = config.samplerate
+        self.loudness = config.loudness
 
         # Padding
         self.max_ms = config.max_ms
@@ -55,7 +57,9 @@ class AudioInputEncoder(AbstractInputEncoder):
         }
 
     def _transform(self, input_, is_train, sample_rate):
-        channels = self.process_channels(input_, sample_rate)
+        channels = self.process_channels(
+            input_, sample_rate
+        )
         channels = self.pad_trunc_channels(
             channels, sample_rate, self.max_ms, is_train
         )
@@ -79,7 +83,11 @@ class AudioInputEncoder(AbstractInputEncoder):
             resample_channel(d, sr, target_sr) if sr != target_sr else d
             for sr, d in zip(sample_rates, filtered)
         ]
-        return resampled
+        loud_normed = [
+            loud_norm(sr, d, self.loudness)
+            for sr, d in zip(sample_rates, resampled)
+        ]
+        return loud_normed
 
     def pad_trunc_channels(self, channels, sample_rate, max_ms, is_train):
         max_len = sample_rate // 1000 * max_ms

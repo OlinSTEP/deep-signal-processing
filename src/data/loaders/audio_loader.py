@@ -67,7 +67,7 @@ class AudioLoader(AbstractLoader):
         reg_sample_rate, reg_input = scipy.io.wavfile.read(reg_path)
         throat_sample_rate, throat_input = scipy.io.wavfile.read(throat_path)
 
-        # We seperate the stereo channels into individual channels here
+        # Seperate the stereo channels into individual channels
         input_ = [
             (reg_sample_rate, reg_input[:, 0]),
             (reg_sample_rate, reg_input[:, 1]),

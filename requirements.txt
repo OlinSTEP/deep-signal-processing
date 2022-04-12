@@ -11,6 +11,7 @@ decorator==5.1.1
 docker-pycreds==0.4.0
 Flask==2.1.1
 fonttools==4.29.1
+future==0.18.2
 gitdb==4.0.9
 GitPython==3.1.26
 idna==3.3
@@ -36,6 +37,7 @@ promise==2.3
 protobuf==3.19.4
 psutil==5.9.0
 pycparser==2.21
+pyloudnorm==0.1.0
 pyparsing==3.0.7
 python-dateutil==2.8.2
 pyxdf==1.16.3
@@ -54,8 +56,8 @@ sounddevice==0.4.4
 SoundFile==0.10.3.post1
 termcolor==1.1.0
 threadpoolctl==3.1.0
-torch==1.11.0
-torchaudio==0.11.0
+torch>=1.11.0
+torchaudio>=0.11.0
 tqdm==4.62.3
 typing_extensions==4.1.1
 typish==1.9.3
