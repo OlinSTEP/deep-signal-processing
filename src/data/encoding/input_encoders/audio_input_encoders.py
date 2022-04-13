@@ -38,6 +38,7 @@ class AudioInputEncoder(AbstractInputEncoder):
         self.aug_pad = config.aug_pad
         self.aug_shift = config.aug_shift
         self.aug_spec = config.aug_spec
+        self.aug_volume = config.aug_volume
 
         # Mel spectogram
         self.n_fft = config.n_fft
@@ -58,7 +59,7 @@ class AudioInputEncoder(AbstractInputEncoder):
 
     def _transform(self, input_, is_train, sample_rate):
         channels = self.process_channels(
-            input_, sample_rate
+            input_, sample_rate, is_train
         )
         channels = self.pad_trunc_channels(
             channels, sample_rate, self.max_ms, is_train
@@ -73,7 +74,7 @@ class AudioInputEncoder(AbstractInputEncoder):
 
         return spectogram
 
-    def process_channels(self, channels, target_sr):
+    def process_channels(self, channels, target_sr, is_train):
         sample_rates, channels = list(zip(*channels))
         filtered = [
             filter_audio_channel(sr, d)
@@ -85,7 +86,7 @@ class AudioInputEncoder(AbstractInputEncoder):
         ]
         if self.loudness:
             loud_normed = [
-                loud_norm(sr, d, self.loudness)
+                loud_norm(sr, d, self.loudness, is_train, shift=self.aug_volume)
                 for sr, d in zip(sample_rates, resampled)
             ]
         return loud_normed
