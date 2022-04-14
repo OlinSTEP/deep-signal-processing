@@ -6,6 +6,10 @@ from src.data import DATASETS
 from src.models import MODELS, OPTS, LOSSES
 
 
+def build_device():
+    return "cuda" if torch.cuda.is_available() else "cpu"
+
+
 def build_datasets(config, device):
     dataset_cls = DATASETS[config.dataset]
     dataset = dataset_cls(config)

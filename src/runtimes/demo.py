@@ -10,6 +10,7 @@ import librosa.display
 
 from src.config import config_from_args
 from src.utils.save import load
+from src.utils.build import build_device
 
 
 class KeyboardThread(threading.Thread):
@@ -54,7 +55,7 @@ def record(samplerate=48000, device=0, channels=2):
 
 def main(args, graph=True):
     config = config_from_args(args)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = build_device()
 
     if config.load_dir is None:
         raise ValueError("load_dir must be specified for demo")
@@ -62,7 +63,7 @@ def main(args, graph=True):
     dataset = built_objs[0]
     model = built_objs[4]
 
-    # model.eval();
+    model.eval();
     samplerate = 48000
     while True:
         data = record(samplerate=samplerate)
@@ -89,11 +90,17 @@ def main(args, graph=True):
         print("#" * 70)
 
         if graph:
+            print(config.samplerate)
+            print(config.max_ms)
+            print(config.loudness)
+            print(processed_data.shape)
             plot_data = processed_data.detach().cpu().numpy()
             import matplotlib.pyplot as plt
             plt.figure(figsize=(10, 4))
-            librosa.display.specshow(plot_data[0, :, :], x_axis='time')
-            # plt.colorbar(format='%+2.0f dB')
+            librosa.display.specshow(
+                plot_data[0, :, :], y_axis="mel", x_axis="time"
+            )
+            plt.colorbar(format='%+2.0f dB')
             plt.title('Mel spectrogram')
             plt.tight_layout()
             plt.show()

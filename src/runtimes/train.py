@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from src.config import config_from_args
 from src.utils.eval import calc_metrics, evaluate
-from src.utils.build import build
+from src.utils.build import build_device, build
 from src.utils.save import save, load
 from src.utils.wandb import init_wandb
 
@@ -67,7 +67,7 @@ def train(
 
 def main(args):
     config = config_from_args(args)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = build_device()
 
     if config.load_dir:
         config, built_objs = load(args, config.load_dir, device)

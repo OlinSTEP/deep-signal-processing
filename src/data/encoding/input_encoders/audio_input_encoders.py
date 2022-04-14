@@ -92,7 +92,7 @@ class AudioInputEncoder(AbstractInputEncoder):
         return loud_normed
 
     def pad_trunc_channels(self, channels, sample_rate, max_ms, is_train):
-        max_len = sample_rate // 1000 * max_ms
+        max_len = sample_rate * max_ms // 1000
 
         resized_channels = []
         for channel in channels:

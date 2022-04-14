@@ -7,11 +7,12 @@ from src.config import config_from_args
 from src.utils.eval import evaluate
 from src.utils.save import load
 from src.utils.wandb import init_wandb
+from src.utils.build import build_device
 
 
 def main(args):
     config = config_from_args(args)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = build_device()
 
     if config.load_dir is None:
         raise ValueError("load_dir must be specified for testing")

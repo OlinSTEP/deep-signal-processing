@@ -8,12 +8,13 @@ from flask import Flask, request
 
 from src.config import config_from_args
 from src.utils.save import load
+from src.utils.build import build_device
 
 
 app = Flask(__name__)
 model = None
 dataset = None
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = build_device()
 
 @app.route("/", methods=["POST"])
 def process_audio():
