@@ -39,8 +39,13 @@ def record(samplerate=48000, device=0, channels=2):
     print('press <enter> to start the recording')
     input()
     kthread = KeyboardThread(unblock)
-    with sd.InputStream(samplerate=samplerate, device=device,
-                        channels=channels, callback=callback):
+    with sd.InputStream(
+        samplerate=samplerate,
+        device=device,
+        channels=channels,
+        callback=callback,
+        dtype=np.int16
+    ):
         print('Recording! <enter> to stop the recording')
         while b.empty():
             pass
@@ -53,7 +58,7 @@ def record(samplerate=48000, device=0, channels=2):
     return data
 
 
-def main(args, graph=True):
+def main(args, graph=False):
     config = config_from_args(args)
     device = build_device()
 

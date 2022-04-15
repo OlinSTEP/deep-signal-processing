@@ -7,7 +7,7 @@ import torch
 
 def calc_metrics(
     losses, accuracies,
-    labels=None, preds=None, target_labels=None, prefix=""
+    labels=None, preds=None, target_labels=None, prefix="", use_wandb=True
 ):
     if prefix:
         prefix = prefix.strip()
@@ -20,14 +20,15 @@ def calc_metrics(
     if not labels or not preds or not target_labels:
         return metrics
 
-    # To avoid logging too many metrics, these metrics are not calculated for
-    # train data, and therefore do not have a prefix attached to them
-    metrics["Confusion Matrix"] = wandb.plot.confusion_matrix(
-        y_true=labels,
-        preds=preds,
-        class_names=target_labels,
-        title="Confusion Matrix",
-    )
+    if use_wandb:
+        # To avoid logging too many metrics, these metrics are not calculated for
+        # train data, and therefore do not have a prefix attached to them
+        metrics["Confusion Matrix"] = wandb.plot.confusion_matrix(
+            y_true=labels,
+            preds=preds,
+            class_names=target_labels,
+            title="Confusion Matrix",
+        )
 
     # sklearn wants idxs as labels and preds are idxs
     target_labels = [i for i in range(len(target_labels))]
