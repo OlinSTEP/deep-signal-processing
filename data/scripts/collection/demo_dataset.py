@@ -79,15 +79,12 @@ def main(args):
             json.dump(save_dict, f)
         print(f"  Wrote {file_path}")
 
-        # Copy single input channel to two input channels
-        throat_data = np.stack((data, data), axis=-1)
-
         # Only have throat data, copy for reg data to make loader happy
         file_path = os.path.join(save_dir, f"{idx}_reg_audio.wav")
         scipy.io.wavfile.write(
             file_path,
             samplerate,
-            throat_data,
+            data,
         )
         print(f"  Wrote {file_path}")
 
@@ -95,7 +92,7 @@ def main(args):
         scipy.io.wavfile.write(
             file_path,
             samplerate,
-            throat_data
+            data
         )
         print(f"  Wrote {file_path}")
 

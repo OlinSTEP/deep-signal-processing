@@ -72,11 +72,13 @@ def main(args, graph=False):
     samplerate = 48000
     while True:
         data = record(samplerate=samplerate)
+        if data.shape[0] / 48000 < 0.4:
+            continue
         input_data = [
             (0, []),
             (0, []),
             (samplerate, data[:, 0]),
-            (samplerate, data[:, 0]),
+            (samplerate, data[:, 1]),
         ]
         processed_data = dataset.input_encoder.transform(input_data, False)
 
