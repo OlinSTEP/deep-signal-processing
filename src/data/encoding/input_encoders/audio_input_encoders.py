@@ -65,7 +65,7 @@ class AudioInputEncoder(AbstractInputEncoder):
             channels, sample_rate, self.max_ms, is_train
         )
         if self.aug and is_train and self.aug_shift:
-            self.aug_channels(channels)
+            channels = self.aug_channels(channels)
 
         # (channels, n_mels, time)
         spectogram = self.to_spectogram(channels, sample_rate)

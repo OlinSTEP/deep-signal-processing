@@ -22,6 +22,8 @@ def filter_audio_channel(sample_freq, channel):
 def loud_norm(sample_freq, channel, target, is_train, shift=0):
     meter = pln.Meter(sample_freq)
     loudness = meter.integrated_loudness(channel)
+    if loudness < 0:
+        return channel
     if shift > 0 and is_train:
         target += random.randint(-target, target)
     normed = pln.normalize.loudness(channel, loudness, target)
