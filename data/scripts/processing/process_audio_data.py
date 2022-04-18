@@ -105,7 +105,7 @@ def load_streams(
     streams, _ = pyxdf.load_xdf(file_path)
 
     if get_names:
-        get_names_exit()
+        get_names_exit(streams)
 
     for i, stream in enumerate(streams):
         print(f"{i}: {stream['info']['name'][0]}")
