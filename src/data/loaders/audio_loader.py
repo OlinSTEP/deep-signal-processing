@@ -1,7 +1,8 @@
 import os
 import re
-
+import random
 import json
+
 import scipy.io.wavfile
 from sklearn.model_selection import train_test_split
 
@@ -13,6 +14,7 @@ class AudioLoader(AbstractLoader):
         super().__init__(config)
 
         self.stratify = config.stratify
+        self.split_sessions = config.split_sessions
         self.use_cache = config.cache_raw
 
         self.train_idxs = {}
@@ -23,7 +25,9 @@ class AudioLoader(AbstractLoader):
         ]
 
         self.files = []
+        self.sessions = []
         for session_dir in session_dirs:
+            self.sessions.append([])
             for file_name in os.listdir(session_dir):
                 # Folder contains files in the formats `IDX_info.json`,
                 # `IDX_reg_audio.wav` and `IDX_throat_audio.wav`
@@ -36,6 +40,8 @@ class AudioLoader(AbstractLoader):
                 json_path = os.path.join(session_dir, file_name)
                 reg_path = os.path.join(session_dir, f"{idx}_reg_audio.wav")
                 throat_path = os.path.join(session_dir, f"{idx}_throat_audio.wav")
+
+                self.sessions[-1].append(len(self.files))
                 self.files.append((json_path, reg_path, throat_path))
 
         if self.use_cache:
@@ -80,6 +86,11 @@ class AudioLoader(AbstractLoader):
         return input_, target, is_train
 
     def build_splits(self):
+        if self.split_sessions:
+            return self.build_splits_session()
+        return self.build_splits_naive()
+
+    def build_splits_naive(self):
         datapoints = (self.load(i) for i in range(len(self)))
         targets = [target for _, target, _ in datapoints]
 
@@ -101,6 +112,32 @@ class AudioLoader(AbstractLoader):
         )
 
         self.train_idxs = set(train_idxs)
+
+        return train_idxs, dev_idxs, test_idxs
+
+    def build_splits_session(self):
+        # 70% / 15% / 15% split
+        num_sessions = len(self.sessions)
+        train_sessions = int(num_sessions * 0.7)
+        test_sessions = (num_sessions - train_sessions) // 2
+        dev_sessions = num_sessions - train_sessions -  test_sessions
+
+        random.seed(SEED)
+        session_idxs = list(range(num_sessions))
+        random.shuffle(session_idxs)
+
+        train_idxs = []
+        for _ in range(train_sessions):
+            idx = session_idxs.pop()
+            train_idxs.extend(self.sessions[idx])
+        dev_idxs = []
+        for _ in range(dev_sessions):
+            idx = session_idxs.pop()
+            dev_idxs.extend(self.sessions[idx])
+        test_idxs = []
+        for _ in range(test_sessions):
+            idx = session_idxs.pop()
+            test_idxs.extend(self.sessions[idx])
 
         return train_idxs, dev_idxs, test_idxs
 

@@ -166,6 +166,15 @@ def build_parsers():
 
     ## Splits
     parser.add_argument(
+        "--split_sessions", type=int,
+        default=1,
+        help=(
+            "Whether to split the data on sessions or not. When enabled,"
+            "holdout data sessions will never be trained on. "
+            "1 for True, 0 for False"
+        )
+    )
+    parser.add_argument(
         "--stratify", type=int,
         default=1,
         help=(
