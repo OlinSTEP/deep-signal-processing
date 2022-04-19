@@ -22,7 +22,7 @@ def build_datasets(config, device):
         num_workers=(cpu_count() if device == "cuda" else 0),
         pin_memory=(device == "cuda"),
         collate_fn=dataset.collate_fn
-    )
+    ) if train_set else None
     dev_loader = torch.utils.data.DataLoader(
         dev_set,
         shuffle=False,
@@ -30,7 +30,7 @@ def build_datasets(config, device):
         num_workers=(cpu_count() if device == "cuda" else 0),
         pin_memory=(device == "cuda"),
         collate_fn=dataset.collate_fn
-    )
+    ) if dev_set else None
     test_loader = torch.utils.data.DataLoader(
         test_set,
         shuffle=False,
@@ -38,7 +38,7 @@ def build_datasets(config, device):
         num_workers=(cpu_count() if device == "cuda" else 0),
         pin_memory=(device == "cuda"),
         collate_fn=dataset.collate_fn
-    )
+    ) if test_set else None
 
     return dataset, train_loader, dev_loader, test_loader
 

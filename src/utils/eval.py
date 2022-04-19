@@ -57,7 +57,7 @@ def evaluate(device, dataset, dataloader, model, loss_fn, prefix=""):
     accuracies = []
     all_labels = []
     all_preds = []
-    # model.eval()
+    model.eval()
     with torch.no_grad():
         for datapoint in dataloader:
             inputs = datapoint["input"].to(device)

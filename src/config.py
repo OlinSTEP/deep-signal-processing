@@ -29,6 +29,14 @@ def load_defaults(parser, config_path):
 
 # PARSING TYPES
 
+def split_params(s):
+    try:
+        return [int(split) / 100 for split in s.split(',')]
+    except:
+        raise argparse.ArgumentError(
+            "Argument must be of form train%,dev%,test%"
+        )
+
 def conv_params(s):
     try:
         layers = [l.split(",") for l in s.split()]
@@ -165,6 +173,16 @@ def build_parsers():
     )
 
     ## Splits
+    parser.add_argument(
+        "--splits", type=split_params,
+        default=(0.7, 0.15, 0.15),
+        help=(
+            "What splits to use for the train / dev / test sets. Should be"
+            "specified with each percentage expressed as an integer, seperated"
+            " by commas. Ex: To recreate the default splits, "
+            "'--splits 70,15,15'"
+        )
+    )
     parser.add_argument(
         "--split_sessions", type=int,
         default=1,

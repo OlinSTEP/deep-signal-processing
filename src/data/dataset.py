@@ -81,9 +81,9 @@ class Dataset(torch.utils.data.Dataset):
 
     def split(self):
         train_idx, dev_idx, test_idx = self.loader.build_splits()
-        train_set = torch.utils.data.Subset(self, train_idx)
-        dev_set = torch.utils.data.Subset(self, dev_idx)
-        test_set = torch.utils.data.Subset(self, test_idx)
+        train_set = torch.utils.data.Subset(self, train_idx) if train_idx else None
+        dev_set = torch.utils.data.Subset(self, dev_idx) if dev_idx else None
+        test_set = torch.utils.data.Subset(self, test_idx) if test_idx else None
         return train_set, dev_set, test_set
 
     @property

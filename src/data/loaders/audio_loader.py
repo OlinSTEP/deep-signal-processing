@@ -14,6 +14,7 @@ class AudioLoader(AbstractLoader):
         super().__init__(config)
 
         self.stratify = config.stratify
+        self.train_split, self.dev_split, self.test_split = config.splits
         self.split_sessions = config.split_sessions
         self.use_cache = config.cache_raw
 
@@ -93,33 +94,49 @@ class AudioLoader(AbstractLoader):
     def build_splits_naive(self):
         datapoints = (self.load(i) for i in range(len(self)))
         targets = [target for _, target, _ in datapoints]
+        all_idxs = list(range(len(self)))
 
-        # 70% / 15% / 15% split
-        train_idxs, dev_test_idxs, _, dev_test_targets = train_test_split(
-            list(range(len(self))),
-            targets,
-            test_size=0.3,
-            random_state=SEED,
-            shuffle=True,
-            stratify=(targets if self.stratify else None)
-        )
-        dev_idxs, test_idxs = train_test_split(
-            dev_test_idxs,
-            test_size=0.5,
-            random_state=SEED,
-            shuffle=True,
-            stratify=(dev_test_targets if self.stratify else None)
-        )
+        def _split_helper(idxs, targets, split):
+            """
+            Handle splits of 0 and 1 manually since sklearn gets mad when we
+            pass them to train_test_split()
+            """
+            if split == 1:
+                return [], idxs, targets
+            elif split == 0:
+                return idxs, [], None
+            else:
+                a_idxs, b_idxs, _, b_targets = train_test_split(
+                    idxs,
+                    targets,
+                    test_size=split,
+                    random_state=SEED,
+                    shuffle=True,
+                    stratify=(targets if self.stratify else None)
+                )
+                return a_idxs, b_idxs, b_targets
 
+        dev_test_split = 1 - self.train_split
+        train_idxs, dev_test_idxs, dev_test_targets = _split_helper(
+            all_idxs, targets, dev_test_split
+        )
         self.train_idxs = set(train_idxs)
+
+        if dev_test_split == 0:
+            return train_idxs, [], []
+
+        test_split = self.test_split / dev_test_split
+        dev_idxs, test_idxs, _ = _split_helper(
+            dev_test_idxs, dev_test_targets, test_split
+        )
 
         return train_idxs, dev_idxs, test_idxs
 
     def build_splits_session(self):
         # 70% / 15% / 15% split
         num_sessions = len(self.sessions)
-        train_sessions = int(num_sessions * 0.7)
-        test_sessions = (num_sessions - train_sessions) // 2
+        train_sessions = int(num_sessions * self.train_split)
+        test_sessions = int(num_sessions * self.test_split)
         dev_sessions = num_sessions - train_sessions -  test_sessions
 
         random.seed(SEED)
