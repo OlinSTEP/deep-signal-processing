@@ -201,6 +201,7 @@ def process_session_dir(args, session_dir):
     get_names = args.get_names
 
     idx_to_target = {}
+    all_data = None
     for file_name in os.listdir(session_dir):
         path = os.path.join(session_dir, file_name)
         if file_name.endswith(".xdf"):
@@ -210,6 +211,9 @@ def process_session_dir(args, session_dir):
         elif file_name.endswith(".json"):
             idx, target = load_targets(path)
             idx_to_target[idx] = target
+
+    if all_data is None:
+        return
 
     # Convert target_idx to target
     all_data = [
