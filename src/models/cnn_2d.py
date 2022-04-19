@@ -23,6 +23,8 @@ class CNN2D(Model):
                 convolutional layer. None indicates no pooling used. Length < 1
                 indicates no pooling for the corresponding pooling layer.
                 ex: ((2, 2)) would make 1 pooling layer of size 2x2 and 2 stride
+            adaptive_pool: Bool indicating whether the final channels should be
+                pooled down to single average values or not.
             drop_prob: Probability of dropout. Dropout is not used if < 0,
                 otherwise applied between all layers.
         """
@@ -49,10 +51,16 @@ class CNN2D(Model):
                 self.convs.append(nn.Dropout(p=config.drop_prob))
             last_size = out_channels
 
+        self.flatten = nn.ModuleList()
+        if config.adaptive_pool:
+            self.flatten.append(torch.nn.AdaptiveAvgPool2d((1,1)))
+        self.flatten.append(torch.nn.Flatten(start_dim=1))
+
         x = torch.tensor(np.ones(in_size, dtype=np.float32)[None, :])
         for conv in self.convs:
             x = conv(x)
-        x = torch.flatten(x, start_dim=1)
+        for flat in self.flatten:
+            x = flat(x)
         last_size = x.shape[1]
 
         self.fcs = nn.ModuleList()
@@ -67,16 +75,21 @@ class CNN2D(Model):
 
 
     def forward(self, input_data):
+        conv_data = input_data
         for conv in self.convs:
-            input_data = conv(input_data)
-            input_data = self.activation(input_data)
+            conv_data = conv(conv_data)
+            conv_data = self.activation(conv_data)
 
-        flat_data = torch.flatten(input_data, start_dim=1)
+        flat_data = conv_data
+        for flat in self.flatten:
+            flat_data = flat(flat_data)
+
+        fc_data = flat_data
         for fc in self.fcs:
-            flat_data = fc(flat_data)
-            flat_data = self.activation(flat_data)
+            fc_data = fc(fc_data)
+            fc_data = self.activation(fc_data)
 
-        out = self.out(flat_data)
+        out = self.out(fc_data)
         return out
 
 

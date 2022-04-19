@@ -312,6 +312,14 @@ def build_parsers():
             "'--pools 3,1 3,1'"
         )
     )
+    parser.add_argument(
+        "--adaptive_pool", type=int,
+        default=1,
+        help=(
+            "Whether to pool final layers down to single values."
+            "1 for True, 0 for False"
+        )
+    )
 
     ## Regularization
     parser.add_argument(
