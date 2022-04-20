@@ -314,7 +314,7 @@ def build_parsers():
     )
     parser.add_argument(
         "--adaptive_pool", type=int,
-        default=1,
+        default=0,
         help=(
             "Whether to pool final layers down to single values."
             "1 for True, 0 for False"
