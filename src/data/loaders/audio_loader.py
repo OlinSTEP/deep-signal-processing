@@ -2,48 +2,60 @@ import os
 import re
 import random
 import json
+from itertools import chain
 
 import scipy.io.wavfile
 from sklearn.model_selection import train_test_split
 
-from .loader import AbstractLoader, SEED
+from .loader import AbstractLoader
 
 
 class AudioLoader(AbstractLoader):
     def __init__(self, config):
         super().__init__(config)
 
+        self.seed = config.seed
+
         self.stratify = config.stratify
         self.train_split, self.dev_split, self.test_split = config.splits
         self.split_sessions = config.split_sessions
+        self.split_subjects = config.split_subjects
         self.use_cache = config.cache_raw
 
         self.train_idxs = {}
 
-        session_dirs = [
+        self.files = []     # Contains file path tuples
+        self.sessions = []  # Contains self.files idxs
+        self.subjects = []  # Contains self.session idxs
+
+        subject_dirs = sorted([
             os.path.join(self.data_path, fn)
             for fn in os.listdir(self.data_path)
-        ]
+        ])
+        for subject_dir in subject_dirs:
+            self.subjects.append([])
+            session_dirs = sorted([
+                os.path.join(subject_dir, fn)
+                for fn in os.listdir(subject_dir)
+            ])
+            for session_dir in session_dirs:
+                self.subjects[-1].append(len(self.sessions))
+                self.sessions.append([])
+                for file_name in os.listdir(session_dir):
+                    # Folder contains files in the formats `IDX_info.json`,
+                    # `IDX_reg_audio.wav` and `IDX_throat_audio.wav`
+                    # We're iterating over just the `IDX_info.json`s
+                    match = re.match(r'(\d+)_info.json', file_name)
+                    if match is None:
+                        continue
 
-        self.files = []
-        self.sessions = []
-        for session_dir in session_dirs:
-            self.sessions.append([])
-            for file_name in os.listdir(session_dir):
-                # Folder contains files in the formats `IDX_info.json`,
-                # `IDX_reg_audio.wav` and `IDX_throat_audio.wav`
-                # We're iterating over just the `IDX_info.json`s
-                match = re.match(r'(\d+)_info.json', file_name)
-                if match is None:
-                    continue
+                    idx = int(match.group(1))
+                    json_path = os.path.join(session_dir, file_name)
+                    reg_path = os.path.join(session_dir, f"{idx}_reg_audio.wav")
+                    throat_path = os.path.join(session_dir, f"{idx}_throat_audio.wav")
 
-                idx = int(match.group(1))
-                json_path = os.path.join(session_dir, file_name)
-                reg_path = os.path.join(session_dir, f"{idx}_reg_audio.wav")
-                throat_path = os.path.join(session_dir, f"{idx}_throat_audio.wav")
-
-                self.sessions[-1].append(len(self.files))
-                self.files.append((json_path, reg_path, throat_path))
+                    self.sessions[-1].append(len(self.files))
+                    self.files.append((json_path, reg_path, throat_path))
 
         if self.use_cache:
             self.use_cache = False
@@ -89,7 +101,10 @@ class AudioLoader(AbstractLoader):
     def build_splits(self):
         if self.split_sessions:
             return self.build_splits_session()
-        return self.build_splits_naive()
+        elif self.split_subjects:
+            return self.build_splits_subject()
+        else:
+            return self.build_splits_naive()
 
     def build_splits_naive(self):
         datapoints = (self.load(i) for i in range(len(self)))
@@ -110,7 +125,7 @@ class AudioLoader(AbstractLoader):
                     idxs,
                     targets,
                     test_size=split,
-                    random_state=SEED,
+                    random_state=self.seed,
                     shuffle=True,
                     stratify=(targets if self.stratify else None)
                 )
@@ -133,28 +148,47 @@ class AudioLoader(AbstractLoader):
         return train_idxs, dev_idxs, test_idxs
 
     def build_splits_session(self):
-        # 70% / 15% / 15% split
         num_sessions = len(self.sessions)
         train_sessions = int(num_sessions * self.train_split)
         test_sessions = int(num_sessions * self.test_split)
         dev_sessions = num_sessions - train_sessions -  test_sessions
 
-        random.seed(SEED)
+        random.seed(self.seed)
         session_idxs = list(range(num_sessions))
         random.shuffle(session_idxs)
 
-        train_idxs = []
-        for _ in range(train_sessions):
-            idx = session_idxs.pop()
-            train_idxs.extend(self.sessions[idx])
-        dev_idxs = []
-        for _ in range(dev_sessions):
-            idx = session_idxs.pop()
-            dev_idxs.extend(self.sessions[idx])
-        test_idxs = []
-        for _ in range(test_sessions):
-            idx = session_idxs.pop()
-            test_idxs.extend(self.sessions[idx])
+        def _load_session_idxs(dest, n):
+            for _ in range(n):
+                session_idx = session_idxs.pop()
+                file_idxs = self.sessions[session_idx]
+                dest.extend(file_idxs)
+        train_idxs, dev_idxs, test_idxs = [], [], []
+        _load_session_idxs(train_idxs, train_sessions)
+        _load_session_idxs(dev_idxs, dev_sessions)
+        _load_session_idxs(test_idxs, test_sessions)
+
+        return train_idxs, dev_idxs, test_idxs
+
+    def build_splits_subject(self):
+        num_subjects = len(self.subjects)
+        train_subjects = int(num_subjects * self.train_split)
+        test_subjects = int(num_subjects * self.test_split)
+        dev_subjects = num_subjects - train_subjects -  test_subjects
+
+        random.seed(self.seed)
+        subject_idxs = list(range(num_subjects))
+        random.shuffle(subject_idxs)
+
+        def _load_subject_idxs(dest, n):
+            for _ in range(n):
+                subject_idx = subject_idxs.pop()
+                session_idxs = self.subjects[subject_idx]
+                file_idxs = [self.sessions[i] for i in session_idxs]
+                dest.extend(chain(*file_idxs))
+        train_idxs, dev_idxs, test_idxs = [], [], []
+        _load_subject_idxs(train_idxs, train_subjects)
+        _load_subject_idxs(dev_idxs, dev_subjects)
+        _load_subject_idxs(test_idxs, test_subjects)
 
         return train_idxs, dev_idxs, test_idxs
 

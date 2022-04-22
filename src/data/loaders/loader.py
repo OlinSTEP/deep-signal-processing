@@ -1,9 +1,6 @@
 from abc import ABC, abstractmethod
 
 
-SEED = 42
-
-
 class AbstractLoader(ABC):
     """
     Loader base class

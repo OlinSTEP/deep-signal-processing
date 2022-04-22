@@ -174,6 +174,11 @@ def build_parsers():
 
     ## Splits
     parser.add_argument(
+        "--seed", type=int,
+        default=42,
+        help="Random seed to use for splits"
+    )
+    parser.add_argument(
         "--splits", type=split_params,
         default=(0.7, 0.15, 0.15),
         help=(
@@ -185,10 +190,19 @@ def build_parsers():
     )
     parser.add_argument(
         "--split_sessions", type=int,
-        default=1,
+        default=0,
         help=(
             "Whether to split the data on sessions or not. When enabled,"
             "holdout data sessions will never be trained on. "
+            "1 for True, 0 for False"
+        )
+    )
+    parser.add_argument(
+        "--split_subjects", type=int,
+        default=0,
+        help=(
+            "Whether to split the data on subjects or not. When enabled,"
+            "holdout data subjects will never be trained on. "
             "1 for True, 0 for False"
         )
     )
