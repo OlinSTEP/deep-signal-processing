@@ -7,6 +7,7 @@
   "stratify": "1",
   "aug": "1",
   "aug_spec": "1",
+  "split_sessions": "1",
 
   "max_ms": "2000",
   "loudness": "40",
