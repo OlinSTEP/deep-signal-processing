@@ -107,10 +107,6 @@ class AudioLoader(AbstractLoader):
             return self.build_splits_naive()
 
     def build_splits_naive(self):
-        datapoints = (self.load(i) for i in range(len(self)))
-        targets = [target for _, target, _ in datapoints]
-        all_idxs = list(range(len(self)))
-
         def _split_helper(idxs, targets, split):
             """
             Handle splits of 0 and 1 manually since sklearn gets mad when we
@@ -131,42 +127,53 @@ class AudioLoader(AbstractLoader):
                 )
                 return a_idxs, b_idxs, b_targets
 
-        dev_test_split = 1 - self.train_split
-        train_idxs, dev_test_idxs, dev_test_targets = _split_helper(
-            all_idxs, targets, dev_test_split
-        )
+        train_idxs, dev_idxs, test_idxs = [], [], []
+        for subject_sessions in self.subjects:
+            for session_idx in subject_sessions:
+                session_files = self.sessions[session_idx]
+                targets = [self.load(i)[1] for i in session_files]
+
+                dev_test_split = 1 - self.train_split
+                _train_idxs, dev_test_idxs, dev_test_targets = _split_helper(
+                    session_files, targets, dev_test_split
+                )
+                train_idxs.extend(_train_idxs)
+
+                if dev_test_split == 0:
+                    continue
+
+                test_split = self.test_split / dev_test_split
+                _dev_idxs, _test_idxs, _ = _split_helper(
+                    dev_test_idxs, dev_test_targets, test_split
+                )
+                dev_idxs.extend(_dev_idxs)
+                test_idxs.extend(_test_idxs)
+
         self.train_idxs = set(train_idxs)
-
-        if dev_test_split == 0:
-            return train_idxs, [], []
-
-        test_split = self.test_split / dev_test_split
-        dev_idxs, test_idxs, _ = _split_helper(
-            dev_test_idxs, dev_test_targets, test_split
-        )
-
         return train_idxs, dev_idxs, test_idxs
 
     def build_splits_session(self):
-        num_sessions = len(self.sessions)
-        train_sessions = int(num_sessions * self.train_split)
-        test_sessions = int(num_sessions * self.test_split)
-        dev_sessions = num_sessions - train_sessions -  test_sessions
-
         random.seed(self.seed)
-        session_idxs = list(range(num_sessions))
-        random.shuffle(session_idxs)
-
-        def _load_session_idxs(dest, n):
-            for _ in range(n):
-                session_idx = session_idxs.pop()
-                file_idxs = self.sessions[session_idx]
-                dest.extend(file_idxs)
         train_idxs, dev_idxs, test_idxs = [], [], []
-        _load_session_idxs(train_idxs, train_sessions)
-        _load_session_idxs(dev_idxs, dev_sessions)
-        _load_session_idxs(test_idxs, test_sessions)
+        for subject_sessions in self.subjects:
+            num_sessions = len(subject_sessions)
+            train_sessions = int(num_sessions * self.train_split)
+            test_sessions = round(num_sessions * self.test_split)
+            dev_sessions = num_sessions - train_sessions -  test_sessions
 
+            # Randomizes subject_session not in-place
+            session_idxs = random.sample(subject_sessions, num_sessions)
+
+            def _load_session_idxs(dest, n):
+                for _ in range(n):
+                    session_idx = session_idxs.pop()
+                    file_idxs = self.sessions[session_idx]
+                    dest.extend(file_idxs)
+            _load_session_idxs(train_idxs, train_sessions)
+            _load_session_idxs(dev_idxs, dev_sessions)
+            _load_session_idxs(test_idxs, test_sessions)
+
+        self.train_idxs = set(train_idxs)
         return train_idxs, dev_idxs, test_idxs
 
     def build_splits_subject(self):
@@ -190,6 +197,7 @@ class AudioLoader(AbstractLoader):
         _load_subject_idxs(dev_idxs, dev_subjects)
         _load_subject_idxs(test_idxs, test_subjects)
 
+        self.train_idxs = set(train_idxs)
         return train_idxs, dev_idxs, test_idxs
 
     def __len__(self):
