@@ -108,7 +108,16 @@ class CNNPreTrained(Model):
         raise NotImplementedError
 
 
-class ResNet(CNNPreTrained):
+class ResNet18(CNNPreTrained):
+    def build_model(self, num_classes):
+        model = torchvision.models.resnet18(pretrained=True)
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, num_classes)
+        input_size = 224
+        return model, input_size
+
+
+class ResNet34(CNNPreTrained):
     def build_model(self, num_classes):
         model = torchvision.models.resnet34(pretrained=True)
         num_ftrs = model.fc.in_features
