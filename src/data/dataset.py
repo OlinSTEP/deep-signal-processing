@@ -57,8 +57,9 @@ class Dataset(torch.utils.data.Dataset):
     def build_input_encoder(self, config):
         # Generator so we don't have to load all points into memory
         # input_encoder can load all inputs at its discretion
+        train_idx, *_ = self.loader.build_splits()
         def generator():
-            for i in range(len(self)):
+            for i in train_idx:
                 input_, _, _ = self.loader.load(i)
                 yield input_
 
@@ -70,8 +71,9 @@ class Dataset(torch.utils.data.Dataset):
     def build_target_encoder(self, config):
         # Generator so we don't have to load all points into memory
         # target_encoder can load all inputs at its discretion
+        train_idx, *_ = self.loader.build_splits()
         def generator():
-            for i in range(len(self)):
+            for i in train_idx:
                 _, target, _ = self.loader.load(i)
                 yield target
 

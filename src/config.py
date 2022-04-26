@@ -171,6 +171,11 @@ def build_parsers():
             "0 for False. WARNING: WILL BREAK AUGMENTATIONS"
         )
     )
+    parser.add_argument(
+        "--norm", type=int,
+        default=0,
+        help="Whether to normalize inputs or not. 1 for True 0 for False."
+    )
 
     ## Splits
     parser.add_argument(

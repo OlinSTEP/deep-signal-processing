@@ -5,7 +5,10 @@ import torchaudio
 import numpy as np
 
 from .input_encoder import AbstractInputEncoder
-from src.data.filters import filter_audio_channel, resample_channel, loud_norm
+from src.data.filters import (
+    filter_audio_channel, resample_channel, loud_norm, normalize_wave
+)
+from src.utils.norm_image import StatsRecorder
 
 
 def _get_stereo_sample_rate(channels):
@@ -28,6 +31,8 @@ class AudioInputEncoder(AbstractInputEncoder):
 
         # Processing
         self.samplerate = config.samplerate
+        self.norm_wave = config.norm
+        self.norm_spec = config.norm
         self.loudness = config.loudness
 
         # Padding
@@ -46,12 +51,27 @@ class AudioInputEncoder(AbstractInputEncoder):
         self.hop_len = config.hop_len
 
     def fit(self, inputs):
-        spectogram = self.transform(next(inputs), False)
+        if self.norm_spec:
+            self.spec_stats = StatsRecorder()
+            self.norm_spec = 0
+            for input_ in inputs:
+                spectogram = self.transform(input_, False)
+                self.spec_stats.update(spectogram[None, :])
+            self.norm_spec = 1
+        else:
+            spectogram = self.transform(next(inputs), False)
         self._input_dim = spectogram.numpy().shape
 
     def collate_fn(self, batch):
         batch_input = torch.stack([d["input"] for d in batch])
         batch_target = torch.tensor([d["target"] for d in batch])
+
+        # Normalizing spectograms at batch level for efficiency
+        if self.norm_spec:
+            batch_input = (
+                (batch_input - self.spec_stats.mean) / self.spec_stats.std
+            )
+
         return {
             "input": batch_input,
             "target": batch_target,
@@ -80,16 +100,22 @@ class AudioInputEncoder(AbstractInputEncoder):
             filter_audio_channel(sr, d)
             for sr, d in zip(sample_rates, channels)
         ]
-        resampled = [
+        processed = [
             resample_channel(d, sr, target_sr) if sr != target_sr else d
             for sr, d in zip(sample_rates, filtered)
         ]
-        if self.loudness:
-            loud_normed = [
-                loud_norm(sr, d, self.loudness, is_train, shift=self.aug_volume)
-                for sr, d in zip(sample_rates, resampled)
+        if self.norm_wave:
+            processed = [
+                normalize_wave(d)
+                for d in channels
             ]
-        return loud_normed
+
+        if self.loudness:
+            processed = [
+                loud_norm(sr, d, self.loudness, is_train, shift=self.aug_volume)
+                for sr, d in zip(sample_rates, processed)
+            ]
+        return processed
 
     def pad_trunc_channels(self, channels, sample_rate, max_ms, is_train):
         max_len = sample_rate * max_ms // 1000

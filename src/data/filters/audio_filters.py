@@ -28,3 +28,6 @@ def loud_norm(sample_freq, channel, target, is_train, shift=0):
         target += random.randint(-target, target)
     normed = pln.normalize.loudness(channel, loudness, target)
     return normed
+
+def normalize_wave(channel):
+    return (channel - channel.mean()) / channel.std()
