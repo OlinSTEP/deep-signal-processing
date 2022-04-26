@@ -4,6 +4,9 @@ import sys
 import argparse
 import shutil
 
+import sox
+from tqdm import tqdm
+
 
 subjects = {}
 
@@ -45,6 +48,7 @@ def parse_file(path):
     return name, session, file_names
 
 
+tfm = sox.Transformer()
 def save_file(save_dir, name, session_name, file_names):
     wav_load_path, json_load_path = file_names
 
@@ -72,11 +76,8 @@ def save_file(save_dir, name, session_name, file_names):
         f"{session.len}_info.json"
     )
 
-    print(f"Copying {wav_load_path} -> {wav_save_path}...")
-    shutil.copy(wav_load_path, wav_save_path)
-    print(f"Copying {json_load_path} -> {json_save_path}...")
+    tfm.build(wav_load_path, wav_save_path)
     shutil.copy(json_load_path, json_save_path)
-    print("Done.")
 
     session.len += 1
 
@@ -108,8 +109,10 @@ def main(args):
     parsed_paths = [parse_file(path) for path in paths]
     parsed_paths = sorted([p for p in parsed_paths if p is not None])
 
-    for subject, session, file_names in parsed_paths:
+    print("Processing...")
+    for subject, session, file_names in tqdm(parsed_paths):
         save_file(args.save, subject, session, file_names)
+    print("Done.")
 
 if __name__ == "__main__":
     main(sys.argv[1:])
