@@ -110,7 +110,7 @@ class AudioInputEncoder(AbstractInputEncoder):
                 for d in channels
             ]
 
-        if self.loudness:
+        elif self.loudness:
             processed = [
                 loud_norm(sr, d, self.loudness, is_train, shift=self.aug_volume)
                 for sr, d in zip(sample_rates, processed)
