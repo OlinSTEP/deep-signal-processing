@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import argparse
+import shutil
 
 
 subjects = {}
@@ -14,13 +15,14 @@ class Subject():
 
 
 class Session():
-    def _init_(self, idx):
+    def __init__(self, idx):
         self.idx = idx
         self.len = 0
 
 
 def parse_file(path):
-    match = re.match(r'^(\w+)(\d+)_(\d+)_(\w+)_(.+)\.(json|wav)', path)
+    base_name = os.path.basename(path)
+    match = re.match(r'^(\w+)(\d+)_(\d+)_(\w+)_(.+)\.(json|wav)', base_name)
     if match is None:
         return None
 
@@ -70,10 +72,10 @@ def save_file(save_dir, name, session_name, file_names):
         f"{session.len}_info.json"
     )
 
-    print(f"Moving {wav_load_path} -> {wav_save_path}...")
-    os.rename(wav_load_path, wav_save_path)
-    print(f"Moving {json_load_path} -> {json_save_path}...")
-    os.rename(json_load_path, json_save_path)
+    print(f"Copying {wav_load_path} -> {wav_save_path}...")
+    shutil.copy(wav_load_path, wav_save_path)
+    print(f"Copying {json_load_path} -> {json_save_path}...")
+    shutil.copy(json_load_path, json_save_path)
     print("Done.")
 
     session.len += 1
@@ -85,12 +87,12 @@ def parse_args(args):
     parser.add_argument(
         '--data',
         type=str,
-        default="data/raw_data/SpringBreakAudio"
+        default="data/raw_data/firebase_data/data"
     )
     parser.add_argument(
         '--save',
         type=str,
-        default="data/processed_data/SpringBreakAudio"
+        default="data/processed_data/multi_subject"
     )
 
     return parser.parse_args(args)
@@ -103,8 +105,8 @@ def main(args):
         os.path.join(args.data, n)
         for n in os.listdir(args.data)
     ]
-    parsed_paths = [parse_args(path) for path in paths]
-    parsed_paths = [p for p in parsed_paths if p is not None]
+    parsed_paths = [parse_file(path) for path in paths]
+    parsed_paths = sorted([p for p in parsed_paths if p is not None])
 
     for subject, session, file_names in parsed_paths:
         save_file(args.save, subject, session, file_names)
