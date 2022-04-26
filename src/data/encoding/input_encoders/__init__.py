@@ -1,5 +1,5 @@
 from .audio_input_encoders import (
-    RegMicInputEncoder, ThroatMicInputEncoder, BothMicInputEncoder
+    AudioInputEncoder
 )
 from .general_input_encoders import (
     PaddedSequenceEncoder

@@ -21,10 +21,6 @@ def _get_stereo_sample_rate(channels):
 class AudioInputEncoder(AbstractInputEncoder):
     """
     Input encoder for audio.
-
-    MUST BE EXTENDED. Does not implement the transform() method which is
-    required of Input Encoders. Child classes should call _transform() with
-    a selection (or all) input channels, along with a sample rate.
     """
     def __init__(self, config):
         super().__init__(config)
@@ -77,48 +73,46 @@ class AudioInputEncoder(AbstractInputEncoder):
             "target": batch_target,
         }
 
-    def _transform(self, input_, is_train, sample_rate):
-        channels = self.process_channels(
-            input_, sample_rate, is_train
-        )
-        channels = self.pad_trunc_channels(
-            channels, sample_rate, self.max_ms, is_train
-        )
+    def transform(self, input_, is_train):
+        channels = self.process_channels(input_, is_train)
+        channels = self.pad_trunc_channels(channels, is_train)
         if self.aug and is_train and self.aug_shift:
             channels = self.aug_channels(channels)
 
         # (channels, n_mels, time)
-        spectogram = self.to_spectogram(channels, sample_rate)
+        spectogram = self.to_spectogram(channels)
         if self.aug and is_train and self.aug_spec:
             spectogram = self.aug_spectogram(spectogram)
 
         return spectogram
 
-    def process_channels(self, channels, target_sr, is_train):
+    def process_channels(self, channels, is_train):
         sample_rates, channels = list(zip(*channels))
         filtered = [
             filter_audio_channel(sr, d)
             for sr, d in zip(sample_rates, channels)
         ]
         processed = [
-            resample_channel(d, sr, target_sr) if sr != target_sr else d
+            resample_channel(d, sr, self.samplerate)
+            if sr != self.samplerate else d
             for sr, d in zip(sample_rates, filtered)
         ]
+
         if self.norm_wave:
             processed = [
                 normalize_wave(d)
                 for d in channels
             ]
-
         elif self.loudness:
             processed = [
                 loud_norm(sr, d, self.loudness, is_train, shift=self.aug_volume)
                 for sr, d in zip(sample_rates, processed)
             ]
+
         return processed
 
-    def pad_trunc_channels(self, channels, sample_rate, max_ms, is_train):
-        max_len = sample_rate * max_ms // 1000
+    def pad_trunc_channels(self, channels, is_train):
+        max_len = int(self.samplerate * self.max_ms / 1000)
 
         resized_channels = []
         for channel in channels:
@@ -146,10 +140,10 @@ class AudioInputEncoder(AbstractInputEncoder):
             channel[:] = np.roll(channel, shift_amt)
         return channels
 
-    def to_spectogram(self, channels, sample_rate, top_db=80):
+    def to_spectogram(self, channels, top_db=80):
         # spec has shape [channel, n_mels, time], where channel is mono, stereo etc
         transform = torchaudio.transforms.MelSpectrogram(
-            sample_rate,
+            self.samplerate,
             n_fft=self.n_fft,
             hop_length=self.hop_len,
             n_mels=self.n_mels
@@ -181,53 +175,3 @@ class AudioInputEncoder(AbstractInputEncoder):
             aug_spec = transform(aug_spec, mask_value)
 
         return aug_spec
-
-
-class RegMicInputEncoder(AudioInputEncoder):
-    def transform(self, input_, is_train):
-        """
-        Expected to receive channels corresponding to:
-        [reg_audio_0, reg_audio_1, throat_audio_0, throat_audio_1]
-        Only uses channels 0 and 1
-        """
-        # Only use the reg_audio channels
-        sample_rate = _get_stereo_sample_rate(input_[:2])
-        return self._transform(
-            input_[:2],
-            is_train,
-            sample_rate
-        )
-
-
-class ThroatMicInputEncoder(AudioInputEncoder):
-    def transform(self, input_, is_train):
-        """
-        Expected to receive channels corresponding to:
-        [reg_audio_0, reg_audio_1, throat_audio_0, throat_audio_1]
-        Only uses channels 2 and 3
-        """
-        # Only use the throat_audio channels
-        # sample_rate = _get_stereo_sample_rate(input_[2:])
-        sample_rate = self.samplerate
-        return self._transform(
-            input_[2:],
-            is_train,
-            sample_rate
-        )
-
-
-class BothMicInputEncoder(AudioInputEncoder):
-    def transform(self, input_, is_train):
-        """
-        Expected to receive channels corresponding to:
-        [reg_audio_0, reg_audio_1, throat_audio_0, throat_audio_1]
-        Uses all channels
-        """
-        # Get sample rate from reg audio
-        sample_rate = _get_stereo_sample_rate(input_[:2])
-        # Use all channels
-        return self._transform(
-            input_,
-            is_train,
-            sample_rate
-        )

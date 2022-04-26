@@ -262,6 +262,11 @@ def build_parsers():
 
     ## Audio Specific
     parser.add_argument(
+        "--channels", type=int,
+        default=1,
+        help="Number of channels to use. Used in AudioLoader"
+    )
+    parser.add_argument(
         "--samplerate", type=int,
         default=48000,
         help="Sample rate to resample to. Used in AudioInputEncoder"

@@ -15,6 +15,10 @@ def build_datasets(config, device):
     dataset = dataset_cls(config)
     train_set, dev_set, test_set = dataset.split()
 
+    print(f"Train set size: {len(train_set if train_set else 0)}")
+    print(f"Dev set size: {len(dev_set) if dev_set else 0}")
+    print(f"Test set size: {len(test_set) if test_set else 0}")
+
     train_loader = torch.utils.data.DataLoader(
         train_set,
         shuffle=True,

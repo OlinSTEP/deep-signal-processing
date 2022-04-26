@@ -5,6 +5,7 @@ import json
 from itertools import chain
 
 import scipy.io.wavfile
+import numpy as np
 from sklearn.model_selection import train_test_split
 
 from .loader import AbstractLoader
@@ -15,6 +16,8 @@ class AudioLoader(AbstractLoader):
         super().__init__(config)
 
         self.seed = config.seed
+
+        self.channels = config.channels
 
         self.stratify = config.stratify
         self.train_split, self.dev_split, self.test_split = config.splits
@@ -51,22 +54,24 @@ class AudioLoader(AbstractLoader):
 
                     idx = int(match.group(1))
                     json_path = os.path.join(session_dir, file_name)
-                    reg_path = os.path.join(session_dir, f"{idx}_reg_audio.wav")
-                    throat_path = os.path.join(session_dir, f"{idx}_throat_audio.wav")
+                    audio_paths = self._get_audio_paths(session_dir, idx)
 
                     self.sessions[-1].append(len(self.files))
-                    self.files.append((json_path, reg_path, throat_path))
+                    self.files.append((json_path, audio_paths))
 
         if self.use_cache:
             self.use_cache = False
             self.cache = [self.load(i) for i in range(len(self))]
             self.use_cache = True
 
-    def load(self, index):
+    def _get_audio_paths(self, session_dir, idx):
+        raise NotImplementedError
+
+    def load(self, idx):
         """
         Loads a single datapoint from the disk
 
-        :param index int: Index of datapoint to load
+        :param idx int: Index of datapoint to load
         :returns: Tuple of (input_data, target).
             Input data is a list of (sample_rate, sequence_data) tuples for
             every input channel. Corresponds to:
@@ -74,27 +79,36 @@ class AudioLoader(AbstractLoader):
             Target is a single value
         """
         if self.use_cache:
-            return self.cache[index]
+            return self.cache[idx]
 
-        json_path, reg_path, throat_path = self.files[index]
+        json_path, audio_paths = self.files[idx]
 
         with open(json_path, "r") as f:
             data_dict = json.load(f)
         target = data_dict["target"]
 
-        # reg_input.shape: (time, 2), throat_input.shape: (time, 2)
-        reg_sample_rate, reg_input = scipy.io.wavfile.read(reg_path)
-        throat_sample_rate, throat_input = scipy.io.wavfile.read(throat_path)
+        # Separate data into list of individual channels
+        sample_rates, audio_data = [], []
+        for audio_path in audio_paths:
+            # data.shape: (time, n_channels) if n_channels > 1 else (time,)
+            sr, data = scipy.io.wavfile.read(audio_path)
 
-        # Seperate the stereo channels into individual channels
-        input_ = [
-            (reg_sample_rate, reg_input[:, 0]),
-            (reg_sample_rate, reg_input[:, 1]),
-            (throat_sample_rate, throat_input[:, 0]),
-            (throat_sample_rate, throat_input[:, 1])
-        ]
+            if len(data.shape) == 1:
+                sample_rates.append(sr)
+                audio_data.append(data)
+            else:
+                # Drops extra channels
+                data = data[:, :self.channels]
+                # Change to (n_channels, time)
+                data = np.transpose(data)
+                # Duplicate sr for each channel
+                srs = [sr for _ in range(data.shape[0])]
 
-        is_train = index in self.train_idxs
+                sample_rates.extend(srs)
+                audio_data.extend(data)
+
+        input_ = list(zip(sample_rates, audio_data))
+        is_train = idx in self.train_idxs
 
         return input_, target, is_train
 
@@ -158,7 +172,7 @@ class AudioLoader(AbstractLoader):
         for subject_sessions in self.subjects:
             num_sessions = len(subject_sessions)
             train_sessions = int(num_sessions * self.train_split)
-            test_sessions = round(num_sessions * self.test_split)
+            test_sessions = int(num_sessions * self.test_split)
             dev_sessions = num_sessions - train_sessions -  test_sessions
 
             # Randomizes subject_session not in-place
@@ -202,3 +216,22 @@ class AudioLoader(AbstractLoader):
 
     def __len__(self):
         return len(self.files)
+
+
+class BothMicAudioLoader(AudioLoader):
+    def _get_audio_paths(self, session_dir, idx):
+        reg_path = os.path.join(session_dir, f"{idx}_reg_audio.wav")
+        throat_path = os.path.join(session_dir, f"{idx}_throat_audio.wav")
+        return (reg_path, throat_path)
+
+
+class RegMicAudioLoader(AudioLoader):
+    def _get_audio_paths(self, session_dir, idx):
+        reg_path = os.path.join(session_dir, f"{idx}_reg_audio.wav")
+        return (reg_path,)
+
+
+class ThroatMicAudioLoader(AudioLoader):
+    def _get_audio_paths(self, session_dir, idx):
+        throat_path = os.path.join(session_dir, f"{idx}_throat_audio.wav")
+        return (throat_path,)
