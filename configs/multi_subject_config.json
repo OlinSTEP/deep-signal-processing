@@ -9,6 +9,7 @@
   "aug": "1",
   "aug_spec": "1",
   "split_sessions": "1",
+  "splits": "60,20,20",
 
   "max_ms": "1500",
   "loudness": "-45",
