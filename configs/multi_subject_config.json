@@ -1,6 +1,7 @@
 {
   "project": "Audio Signal Processing",
   "dataset": "throat_mic_classif",
+  "data": "data/processed_data/multi_subject",
 
   "cache_processed": "0",
   "cache_raw": "1",
