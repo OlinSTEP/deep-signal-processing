@@ -13,7 +13,7 @@
 
   "max_ms": "1500",
   "loudness": "-45",
-  "norm": "1",
+  "norm": "0",
   "n_fft": "2048",
   "n_mels": "128",
   "hop_len": "512",

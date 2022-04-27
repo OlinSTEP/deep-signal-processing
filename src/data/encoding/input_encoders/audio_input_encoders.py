@@ -11,13 +11,6 @@ from src.data.filters import (
 from src.utils.norm_image import StatsRecorder
 
 
-def _get_stereo_sample_rate(channels):
-    # Stereo channels should have same input
-    sample_rate = channels[0][0]
-    assert sample_rate == channels[1][0]
-    return sample_rate
-
-
 class AudioInputEncoder(AbstractInputEncoder):
     """
     Input encoder for audio.
@@ -38,8 +31,11 @@ class AudioInputEncoder(AbstractInputEncoder):
         self.aug = config.aug
         self.aug_pad = config.aug_pad
         self.aug_shift = config.aug_shift
-        self.aug_spec = config.aug_spec
         self.aug_volume = config.aug_volume
+        self.aug_spec = config.aug_spec
+        self.aug_spec_pct = config.aug_spec_pct
+        self.aug_spec_time = config.aug_spec_time
+        self.aug_spec_freq = config.aug_spec_freq
 
         # Mel spectogram
         self.n_fft = config.n_fft
@@ -156,21 +152,18 @@ class AudioInputEncoder(AbstractInputEncoder):
 
         return spectogram
 
-    def aug_spectogram(
-        self, spectogram,
-        max_mask_pct=0.1, n_freq_masks=1, n_time_masks=1
-    ):
+    def aug_spectogram(self, spectogram,):
         _, n_mels, n_steps = spectogram.shape
         mask_value = spectogram.mean()
         aug_spec = spectogram
 
-        freq_mask_param = int(max_mask_pct * n_mels)
-        for _ in range(n_freq_masks):
+        freq_mask_param = int(self.aug_spec_pct * n_mels)
+        for _ in range(self.aug_spec_freq):
             transform = torchaudio.transforms.FrequencyMasking(freq_mask_param)
             aug_spec = transform(aug_spec, mask_value)
 
-        time_mask_param = int(max_mask_pct * n_steps)
-        for _ in range(n_time_masks):
+        time_mask_param = int(self.aug_spec_pct * n_steps)
+        for _ in range(self.aug_spec_time):
             transform = torchaudio.transforms.TimeMasking(time_mask_param)
             aug_spec = transform(aug_spec, mask_value)
 

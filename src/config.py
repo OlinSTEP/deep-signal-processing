@@ -155,7 +155,7 @@ def build_parsers():
     parser.add_argument(
         "--dataset", type=str,
         default="throat_mic_classif",
-        choices=set(DATASETS.keys()),
+        choices=sorted(set(DATASETS.keys())),
         help="Type of dataset to use."
     )
     parser.add_argument(
@@ -297,12 +297,36 @@ def build_parsers():
             " AudioInputEncoder"
         )
     )
+    parser.add_argument(
+        "--aug_spec_pct", type=float,
+        default=0.10,
+        help=(
+            "Percentage of spectogram to mask when augmenting. "
+            "Used in AudioInputEncoder"
+        )
+    )
+    parser.add_argument(
+        "--aug_spec_time", type=int,
+        default=1,
+        help=(
+            "Number of time dimension masks to produce when augmenting"
+            " spectograms. Used in AudioInputEncoder"
+        )
+    )
+    parser.add_argument(
+        "--aug_spec_freq", type=int,
+        default=1,
+        help=(
+            "Number of freq dimension masks to produce when augmenting"
+            " spectograms. Used in AudioInputEncoder"
+        )
+    )
 
     # Model hyperparameters
     parser.add_argument(
         "--model", type=str,
         default="2d_cnn",
-        choices=set(MODELS.keys()),
+        choices=sorted(set(MODELS.keys())),
         help="Type of model to train."
     )
 
@@ -356,13 +380,13 @@ def build_parsers():
     parser.add_argument(
         "--opt", type=str,
         default="adam",
-        choices=set(OPTS.keys()),
+        choices=sorted(set(OPTS.keys())),
         help="Type of optimizer to use."
     )
     parser.add_argument(
         "--loss", type=str,
         default="cross_entropy",
-        choices=set(LOSSES.keys()),
+        choices=sorted(set(LOSSES.keys())),
         help="Type of optimizer to use."
     )
     parser.add_argument(
