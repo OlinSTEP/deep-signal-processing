@@ -1,0 +1,30 @@
+{
+  "project": "Audio Signal Processing",
+  "dataset": "throat_mic_classif",
+
+  "cache_processed": "0",
+  "cache_raw": "1",
+  "stratify": "1",
+  "aug": "1",
+  "aug_spec": "1",
+  "split_sessions": "1",
+
+  "max_ms": "1500",
+  "loudness": "-45",
+  "norm": "1",
+  "n_fft": "2048",
+  "n_mels": "128",
+  "hop_len": "512",
+
+  "model": "2d_cnn",
+  "fcs": [128],
+  "convs": "5,2,16 3,2,32 3,2,64 3,1,128 3,1,128 3,2,128 3,2,256",
+  "drop_prob": 0.35,
+
+  "opt": "adam",
+  "loss": "cross_entropy",
+
+  "lr": "0.0005",
+  "epochs": "512",
+  "batch_size": "256"
+}

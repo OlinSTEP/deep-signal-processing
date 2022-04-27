@@ -114,5 +114,7 @@ def main(args):
         save_file(args.save, subject, session, file_names)
     print("Done.")
 
+    print({k: v.idx for k, v in subjects.items()})
+
 if __name__ == "__main__":
     main(sys.argv[1:])
