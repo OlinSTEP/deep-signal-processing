@@ -65,8 +65,7 @@ def main(args, graph=False):
     if config.load_dir is None:
         raise ValueError("load_dir must be specified for demo")
     config, built_objs = load(args, config.load_dir, device)
-    dataset = built_objs[0]
-    model = built_objs[4]
+    dataset, _, model, _, _ = built_objs
 
     model.eval();
     samplerate = 48000

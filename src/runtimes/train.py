@@ -73,8 +73,8 @@ def main(args):
         config, built_objs = load(args, config.load_dir, device)
     else:
         built_objs = build(config, device)
-    dataset, train_loader, dev_loader, _ = built_objs[:4]
-    model, opt, loss_fn = built_objs[4:]
+    dataset, loaders, model, opt, loss_fn = built_objs
+    train_loader, dev_loader, _ = loaders
 
     init_wandb(config)
     wandb.watch(

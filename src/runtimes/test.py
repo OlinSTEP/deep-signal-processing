@@ -17,8 +17,8 @@ def main(args):
     if config.load_dir is None:
         raise ValueError("load_dir must be specified for testing")
     config, built_objs = load(args, config.load_dir, device)
-    dataset, _, _, test_loader = built_objs[:4]
-    model, _, loss_fn = built_objs[4:]
+    dataset, loaders, model, _, loss_fn = built_objs
+    _, _, test_loader = loaders
 
     init_wandb(config, tags=["test"])
 

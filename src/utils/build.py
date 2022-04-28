@@ -13,38 +13,25 @@ def build_device():
 def build_datasets(config, device):
     dataset_cls = DATASETS[config.dataset]
     dataset = dataset_cls(config)
-    train_set, dev_set, test_set = dataset.split()
+    subsets = dataset.split()
 
-    print(f"Train set size: {len(train_set if train_set else 0)}")
-    print(f"Dev set size: {len(dev_set) if dev_set else 0}")
-    print(f"Test set size: {len(test_set) if test_set else 0}")
+    print("Dataset sizes...")
+    for s in subsets:
+        print(f"  Size: {len(s) if s else 0}")
 
-    train_loader = torch.utils.data.DataLoader(
-        train_set,
-        shuffle=True,
-        batch_size=config.batch_size,
-        num_workers=(cpu_count() if device == "cuda" else 0),
-        pin_memory=(device == "cuda"),
-        collate_fn=dataset.collate_fn
-    ) if train_set else None
-    dev_loader = torch.utils.data.DataLoader(
-        dev_set,
-        shuffle=False,
-        batch_size=config.batch_size,
-        num_workers=(cpu_count() if device == "cuda" else 0),
-        pin_memory=(device == "cuda"),
-        collate_fn=dataset.collate_fn
-    ) if dev_set else None
-    test_loader = torch.utils.data.DataLoader(
-        test_set,
-        shuffle=False,
-        batch_size=config.batch_size,
-        num_workers=(cpu_count() if device == "cuda" else 0),
-        pin_memory=(device == "cuda"),
-        collate_fn=dataset.collate_fn
-    ) if test_set else None
+    loaders = [
+        torch.utils.data.DataLoader(
+            s,
+            shuffle=True,
+            batch_size=config.batch_size,
+            num_workers=(cpu_count() if device == "cuda" else 0),
+            pin_memory=(device == "cuda"),
+            collate_fn=dataset.collate_fn
+        ) if s else None
+        for s in subsets
+    ]
 
-    return dataset, train_loader, dev_loader, test_loader
+    return dataset, loaders
 
 
 def build_model(config, dataset):
@@ -66,11 +53,8 @@ def build_loss_fn(config):
 
 
 def build(config, device):
-    dataset, train_loader, dev_loader, test_loader = build_datasets(config, device)
+    dataset, loaders = build_datasets(config, device)
     model = build_model(config, dataset).to(device)
     opt = build_optimizer(config, model)
     loss_fn = build_loss_fn(config)
-    return (
-        dataset, train_loader, dev_loader, test_loader,
-        model, opt, loss_fn
-    )
+    return dataset, loaders, model, opt, loss_fn

@@ -82,11 +82,12 @@ class Dataset(torch.utils.data.Dataset):
         return target_encoder
 
     def split(self):
-        train_idx, dev_idx, test_idx = self.loader.build_splits()
-        train_set = torch.utils.data.Subset(self, train_idx) if train_idx else None
-        dev_set = torch.utils.data.Subset(self, dev_idx) if dev_idx else None
-        test_set = torch.utils.data.Subset(self, test_idx) if test_idx else None
-        return train_set, dev_set, test_set
+        splits = self.loader.build_splits()
+        sets = [
+            torch.utils.data.Subset(self, idxs) if idxs else None
+            for idxs in splits
+        ]
+        return sets
 
     @property
     def collate_fn(self):
@@ -106,5 +107,4 @@ class Dataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
-    # DO TESTS HERE
     pass

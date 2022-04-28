@@ -107,7 +107,9 @@ def build_parsers():
         )
     )
 
+    ##########################################################################
     # WandB
+    ##########################################################################
     parser.add_argument(
         "--project", type=str,
         default="Audio Signal Processing",
@@ -134,7 +136,9 @@ def build_parsers():
         help="Turn WandB logging off"
     )
 
+    ##########################################################################
     # Filepaths
+    ##########################################################################
     parser.add_argument(
         "--data", type=str,
         default="data/processed_data/quiet_front-ear",
@@ -151,7 +155,9 @@ def build_parsers():
         help="Directory to load model and config from"
     )
 
-    # Dataset hyperparameters
+    ##########################################################################
+    # Dataset
+    ##########################################################################
     parser.add_argument(
         "--dataset", type=str,
         default="throat_mic_classif",
@@ -177,7 +183,7 @@ def build_parsers():
         help="Whether to normalize inputs or not. 1 for True 0 for False."
     )
 
-    ## Splits
+    ##### Splits #####
     parser.add_argument(
         "--seed", type=int,
         default=42,
@@ -221,7 +227,7 @@ def build_parsers():
         )
     )
 
-    ## Augmentation
+    ##### Augmentation #####
     parser.add_argument(
         "--aug", type=int,
         default=0,
@@ -248,7 +254,7 @@ def build_parsers():
         help="Whether to use randomly mask spectogram. 1 for True, 0 for False"
     )
 
-    ## Length
+    ##### Length #####
     parser.add_argument(
         "--max_len", type=int,
         default=1024,
@@ -260,7 +266,7 @@ def build_parsers():
         help="Maximium length in ms. Used in AudioInputEncoder"
     )
 
-    ## Audio Specific
+    ##### Audio Specific #####
     parser.add_argument(
         "--channels", type=int,
         default=1,
@@ -322,7 +328,9 @@ def build_parsers():
         )
     )
 
-    # Model hyperparameters
+    ##########################################################################
+    # Model
+    ##########################################################################
     parser.add_argument(
         "--model", type=str,
         default="2d_cnn",
@@ -330,7 +338,7 @@ def build_parsers():
         help="Type of model to train."
     )
 
-    ## Layers
+    ##### Layers #####
     parser.add_argument(
         "--fcs", type=int, nargs='+',
         default=[128],
@@ -369,14 +377,16 @@ def build_parsers():
         )
     )
 
-    ## Regularization
+    ##### Regularization #####
     parser.add_argument(
         "--drop_prob", type=float,
         default=0.25,
         help="Dropout probability."
     )
 
+    ##########################################################################
     # Training
+    ##########################################################################
     parser.add_argument(
         "--opt", type=str,
         default="adam",
@@ -408,6 +418,23 @@ def build_parsers():
         "--log_freq", type=int,
         default=8,
         help="How many epochs to wait before logging"
+    )
+
+    ##### Domain Adaption #####
+    parser.add_argument(
+        "--alpha", type=float,
+        default=0.25,
+        help="What percent of the loss contrastive loss should be"
+    )
+    parser.add_argument(
+        "--pos_pairs", type=int,
+        default=50,
+        help="How many positive pairs each target data point should make"
+    )
+    parser.add_argument(
+        "--neg_pairs", type=int,
+        default=150,
+        help="How many negative pairs each target data point should make"
     )
 
     return config_parser, parser

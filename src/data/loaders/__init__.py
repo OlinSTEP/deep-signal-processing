@@ -1,4 +1,9 @@
 from .audio_loader import (
     RegMicAudioLoader, ThroatMicAudioLoader, BothMicAudioLoader
 )
-from .gesture_loader import GestureLoader
+from .domain_adaption_audio_loader import (
+    ThroatMicDomainAdaptionAudioLoader
+)
+from .gesture_loader import (
+    GestureLoader
+)

@@ -74,7 +74,7 @@ class CNN2D(Model):
         self.activation = nn.ReLU()
 
 
-    def forward(self, input_data):
+    def forward(self, input_data, features=False):
         conv_data = input_data
         for conv in self.convs:
             conv_data = conv(conv_data)
@@ -90,6 +90,8 @@ class CNN2D(Model):
             fc_data = self.activation(fc_data)
 
         out = self.out(fc_data)
+        if features:
+            return out, flat_data
         return out
 
 

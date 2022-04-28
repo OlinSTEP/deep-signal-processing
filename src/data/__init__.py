@@ -1,6 +1,8 @@
 from .dataset import Dataset
+from .domain_adaption_dataset import DomainAdaptionDataset
 from .loaders import (
-    RegMicAudioLoader, ThroatMicAudioLoader, BothMicAudioLoader
+    RegMicAudioLoader, ThroatMicAudioLoader, BothMicAudioLoader,
+    ThroatMicDomainAdaptionAudioLoader
 )
 from .encoding.input_encoders import (
     AudioInputEncoder
@@ -28,8 +30,15 @@ class BothMicClassificationDataset(Dataset):
     target_encoder_cls = ClassificationEncoder
 
 
+class ThroatMicClassificationDomainAdaptionDataset(DomainAdaptionDataset):
+    loader_cls = ThroatMicDomainAdaptionAudioLoader
+    input_encoder_cls = AudioInputEncoder
+    target_encoder_cls = ClassificationEncoder
+
+
 DATASETS = {
     "reg_mic_classif": RegMicClassificationDataset,
     "throat_mic_classif": ThroatMicClassificationDataset,
     "both_mic_classif": BothMicClassificationDataset,
+    "da_throat_mic_classif": ThroatMicClassificationDomainAdaptionDataset,
 }

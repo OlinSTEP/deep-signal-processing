@@ -15,6 +15,7 @@ app = Flask(__name__)
 model = None
 dataset = None
 device = build_device()
+channels = 1
 
 @app.route("/", methods=["POST"])
 def process_audio():
@@ -24,12 +25,8 @@ def process_audio():
     audio_decoded = base64.b64decode(audio)
     samplerate, data = scipy.io.wavfile.read(io.BytesIO(audio_decoded))
 
-    input_data = [
-        (0, []),
-        (0, []),
-        (samplerate, data),
-        (samplerate, data),
-    ]
+    input_data = [(samplerate, data) for _ in range(channels)]
+    # input_data = [(samplerate, data), (samplerate, data)]
     processed_data = dataset.input_encoder.transform(input_data, False).to(device)
 
     with torch.no_grad():
@@ -49,10 +46,10 @@ def main(args):
         raise ValueError("load_dir must be specified for running the webservice")
     config, built_objs = load(args, config.load_dir, device)
 
-    global dataset, model
-    dataset = built_objs[0]
-    model = built_objs[4]
-    # model.eval()
+    global dataset, model, channels
+    dataset, _, model, _, _ = built_objs
+    channels = config.channels
+    model.eval()
 
     app.run(host='0.0.0.0', debug=True)
 

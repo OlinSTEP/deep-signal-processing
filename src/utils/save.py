@@ -35,14 +35,10 @@ def load(args, load_dir, device):
     config = parser.parse_args(args, namespace=loaded_config)
 
     build_objs = build(config, device)
-    dataset, train_loader, dev_loader, test_loader = build_objs[:4]
-    model, opt, loss_fn = build_objs[4:]
+    dataset, loaders, model, opt, loss_fn = build_objs
 
     model_load_path = os.path.join(load_dir, "model.h5")
     model.load(model_load_path, device)
 
-    build_objs = (
-        dataset, train_loader, dev_loader, test_loader,
-        model, opt, loss_fn
-    )
+    build_objs = (dataset, loaders, model, opt, loss_fn)
     return config, build_objs

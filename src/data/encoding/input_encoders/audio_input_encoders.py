@@ -49,6 +49,9 @@ class AudioInputEncoder(AbstractInputEncoder):
             for input_ in inputs:
                 spectogram = self.transform(input_, False)
                 self.spec_stats.update(spectogram[None, :])
+            # Un-batch since we're not broadcasting across batches
+            self.spec_stats.mean = self.spec_stats.mean[0, :]
+            self.spec_stats.std = self.spec_stats.std[0, :]
             self.norm_spec = 1
         else:
             spectogram = self.transform(next(inputs), False)
@@ -57,12 +60,6 @@ class AudioInputEncoder(AbstractInputEncoder):
     def collate_fn(self, batch):
         batch_input = torch.stack([d["input"] for d in batch])
         batch_target = torch.tensor([d["target"] for d in batch])
-
-        # Normalizing spectograms at batch level for efficiency
-        if self.norm_spec:
-            batch_input = (
-                (batch_input - self.spec_stats.mean) / self.spec_stats.std
-            )
 
         return {
             "input": batch_input,
@@ -149,6 +146,11 @@ class AudioInputEncoder(AbstractInputEncoder):
         # Convert to decibels
         transform = torchaudio.transforms.AmplitudeToDB(top_db=top_db)
         spectogram = transform(spectogram)
+
+        if self.norm_spec:
+            spectogram = (
+                (spectogram - self.spec_stats.mean) / self.spec_stats.std
+            )
 
         return spectogram
 
