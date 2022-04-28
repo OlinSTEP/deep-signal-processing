@@ -104,7 +104,7 @@ class DomainAdaptionDataset():
     def split(self):
         return self.dev_train, self.test_train, self.dev_test, self.test_test
 
-    def collate_fn(self, batch):
+    def collate_pairs(self, batch):
         source_batch, target_batch, is_pos = [], [], []
         for d in batch:
             source_batch.append(d["source"])
@@ -120,6 +120,11 @@ class DomainAdaptionDataset():
             "target_target": target_batch["target"],
             "is_pos": is_pos
         }
+
+    def collate_fn(self, batch):
+        if "source" in batch[0]:
+            return self.collate_pairs(batch)
+        return self.dataset.collate_fn(batch)
 
     @property
     def input_dim(self):

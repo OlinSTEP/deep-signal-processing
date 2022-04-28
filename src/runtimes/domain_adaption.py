@@ -58,8 +58,8 @@ def domain_adaption(
         metrics = {}
         metrics.update(calc_metrics(losses, accuracies, prefix="Train"))
         metrics.update({
-            "Train Classif Loss": np.mean(classif_loss),
-            "Train Cont Loss": np.mean(cont_loss),
+            "Train Classif Loss": np.mean(classif_losses),
+            "Train Cont Loss": np.mean(cont_losses),
         })
         if (
             (epoch % config.log_freq == 0 or epoch + 1 == config.epochs)
