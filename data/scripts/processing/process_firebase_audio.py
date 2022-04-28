@@ -25,7 +25,7 @@ class Session():
 
 def parse_file(path):
     base_name = os.path.basename(path)
-    match = re.match(r'^(\w+)(\d+)_(\d+)_(\w+)_(.+)\.(json|wav)', base_name)
+    match = re.match(r'^(\D+)(\d+)_(\d+)_(\w+)_(.+)\.(json|wav)', base_name)
     if match is None:
         return None
 
