@@ -7,6 +7,8 @@ from .audio_loader import AudioLoader
 
 class DomainAdaptionAudioLoader(AudioLoader):
     def __init__(self, config):
+        self.da_sessions = config.da_sessions
+
         if config.split_subjects != 1 or config.split_sessions == 1:
             raise ValueError(
                 "Domain adaption only supports subject splitting"
@@ -34,7 +36,8 @@ class DomainAdaptionAudioLoader(AudioLoader):
             files = [self.sessions[i] for i in session_idxs]
 
             if dest_train is not None:
-                dest_train.extend(files.pop())
+                for _ in range(self.da_sessions):
+                    dest_train.extend(files.pop())
             for _ in range(len(files)):
                 dest.extend(files.pop())
 

@@ -420,7 +420,9 @@ def build_parsers():
         help="How many epochs to wait before logging"
     )
 
-    ##### Domain Adaption #####
+    ##########################################################################
+    # Domain Adaptation
+    ##########################################################################
     parser.add_argument(
         "--alpha", type=float,
         default=0.25,
@@ -435,6 +437,11 @@ def build_parsers():
         "--neg_pairs", type=int,
         default=150,
         help="How many negative pairs each target data point should make"
+    )
+    parser.add_argument(
+        "--da_sessions", type=int,
+        default=1,
+        help="How many sessions the target set should contain"
     )
 
     return config_parser, parser
