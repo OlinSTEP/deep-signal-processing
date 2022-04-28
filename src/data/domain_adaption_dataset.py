@@ -127,6 +127,18 @@ class DomainAdaptionDataset():
         return self.dataset.collate_fn(batch)
 
     @property
+    def loader(self):
+        return self.dataset.loader
+
+    @property
+    def input_encoder(self):
+        return self.dataset.input_encoder
+
+    @property
+    def target_encoder(self):
+        return self.dataset.target_encoder
+
+    @property
     def input_dim(self):
         return self.dataset.input_dim
 
