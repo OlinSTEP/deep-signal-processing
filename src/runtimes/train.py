@@ -4,10 +4,9 @@ import wandb
 import torch
 from tqdm import tqdm
 
-from src.config import config_from_args
 from src.utils.eval import calc_metrics, evaluate
-from src.utils.build import build_device, build
-from src.utils.save import save, load
+from src.utils.setup_all import setup_all
+from src.utils.save import save
 from src.utils.wandb import init_wandb
 
 
@@ -66,22 +65,12 @@ def train(
 
 
 def main(args):
-    config = config_from_args(args)
-    device = build_device()
+    config, device, built_objs = setup_all(args)
 
-    if config.load_dir:
-        config, built_objs = load(args, config.load_dir, device)
-    else:
-        built_objs = build(config, device)
     dataset, loaders, model, opt, loss_fn = built_objs
     train_loader, dev_loader, _ = loaders
 
-    init_wandb(config)
-    wandb.watch(
-        model,
-        criterion=loss_fn,
-        log_freq=(len(dataset) // config.batch_size) * (config.epochs // 10)
-    )
+    init_wandb(config, model=model, loss_fn=loss_fn)
 
     train(
         config, device,
