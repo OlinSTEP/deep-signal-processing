@@ -7,7 +7,7 @@ from src.config import WANDB_EXCLUDE_KEYS
 def init_wandb(config, model=None, loss_fn=None, tags=None):
     wandb.init(
         project=config.project,
-        entity="step-emg",
+        entity=config.entity,
         config=config,
         name=config.name,
         group=config.group,

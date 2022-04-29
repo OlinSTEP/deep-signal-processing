@@ -111,6 +111,11 @@ def build_parsers():
     # WandB
     ##########################################################################
     parser.add_argument(
+        "--entity", type=str,
+        default="step-emg",
+        help="WandB entity name"
+    )
+    parser.add_argument(
         "--project", type=str,
         default="Audio Signal Processing",
         help="WandB project name"
