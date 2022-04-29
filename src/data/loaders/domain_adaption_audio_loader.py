@@ -26,6 +26,9 @@ class DomainAdaptionAudioLoader(AudioLoader):
         random.shuffle(subject_idxs)
 
         def _load_subject_idxs(dest, n, dest_train=None):
+            if n == 0:
+                return
+
             # Get subject idxs to use for this split
             _subject_idxs = [subject_idxs.pop() for _ in range(n)]
             # Get session idxs to use for this split (not flat)
