@@ -28,7 +28,8 @@ def domain_adaption(
     model.train()
     for epoch in range(config.epochs):
         accuracies, target_accuracies = [], []
-        classif_losses, cont_losses, losses = [], [], []
+        source_classif_losses, target_classif_losses = [], []
+        cont_losses, losses = [], []
         print(f"\nEpoch {epoch}:")
         for datapoint in tqdm(train_loader):
             source_inputs = datapoint["source_input"].to(device)
@@ -40,9 +41,19 @@ def domain_adaption(
             source_out, source_feats = model(source_inputs, features=True)
             target_out, target_feats = model(target_inputs, features=True)
 
-            classif_loss = loss_fn(source_out, source_targets)
+            source_classif_loss = loss_fn(source_out, source_targets)
+            target_classif_loss = loss_fn(target_out, target_targets)
             cont_loss = da_loss_fn(source_feats, target_feats, is_pos)
-            loss = classif_loss * (1 - config.alpha) + cont_loss * config.alpha
+
+            target_loss = (
+                cont_loss * (1 - config.beta) +
+                target_classif_loss * config.beta
+            )
+
+            loss = (
+                source_classif_loss * (1 - config.alpha) +
+                target_loss * config.alpha
+            )
 
             opt.zero_grad()
             loss.backward()
@@ -56,14 +67,16 @@ def domain_adaption(
             target_acc = (pred == target_targets).float().mean()
             target_accuracies.append(target_acc.item())
 
-            classif_losses.append(classif_loss.item())
+            source_classif_losses.append(source_classif_loss.item())
+            target_classif_losses.append(target_classif_loss.item())
             cont_losses.append(cont_loss.item())
             losses.append(loss.item())
 
         metrics = {}
         metrics.update(calc_metrics(losses, accuracies, prefix="Train"))
         metrics.update({
-            "Train Classif Loss": np.mean(classif_losses),
+            "Source Classif Loss": np.mean(source_classif_losses),
+            "Target Classif Loss": np.mean(target_classif_losses),
             "Train Cont Loss": np.mean(cont_losses),
             "Dev Train Acc": np.mean(target_accuracies),
         })
@@ -79,16 +92,15 @@ def domain_adaption(
                 save(config, model)
         wandb.log(metrics)
 
+        print(f"Train Loss: {metrics['Train Loss']:.3f}")
+        print(f"Train Cont Loss: {metrics['Train Cont Loss']:.3f}")
         print(
-            f"Train Loss: {metrics['Train Loss']:.3f}"
+            f"Source Classif Loss: {metrics['Source Classif Loss']:.3f} | "
+            f"Source Accuracy: {metrics['Train Acc']:.3f}"
         )
         print(
-            f"Train Cont Loss: {metrics['Train Cont Loss']:.3f} | "
-            f"Dev Train Accuracy: {metrics['Dev Train Acc']:.3f}"
-        )
-        print(
-            f"Train Classif Loss: {metrics['Train Classif Loss']:.3f} | "
-            f"Train Accuracy: {metrics['Train Acc']:.3f}"
+            f"Target Classif Loss: {metrics['Target Classif Loss']:.3f} | "
+            f"Target Accuracy: {metrics['Dev Train Acc']:.3f}"
         )
         if epoch % config.log_freq == 0 or epoch + 1 == config.epochs:
             print(

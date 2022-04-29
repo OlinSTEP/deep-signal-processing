@@ -431,7 +431,14 @@ def build_parsers():
     parser.add_argument(
         "--alpha", type=float,
         default=0.25,
-        help="What percent of the loss contrastive loss should be"
+        help="What percent of total loss target loss should take up"
+    )
+    parser.add_argument(
+        "--beta", type=float,
+        default=0,
+        help=(
+            "What percent of the target loss classification loss should take up"
+        )
     )
     parser.add_argument(
         "--pos_pairs", type=int,
@@ -448,10 +455,6 @@ def build_parsers():
         default=1,
         help="How many sessions the target set should contain"
     )
-    parser.add_argument(
-        "--target_classif_loss", type=int,
-        default=0,
-        help="Whether to calculate classification loss for target set")
 
     return config_parser, parser
 
