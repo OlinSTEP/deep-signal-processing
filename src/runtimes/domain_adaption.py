@@ -27,17 +27,18 @@ def domain_adaption(
     top_acc = 0
     model.train()
     for epoch in range(config.epochs):
-        accuracies = []
+        accuracies, target_accuracies = [], []
         classif_losses, cont_losses, losses = [], [], []
         print(f"\nEpoch {epoch}:")
         for datapoint in tqdm(train_loader):
             source_inputs = datapoint["source_input"].to(device)
             source_targets = datapoint["source_target"].to(device)
             target_inputs = datapoint["target_input"].to(device)
+            target_targets = datapoint["target_target"].to(device)
             is_pos = datapoint["is_pos"].to(device)
 
             source_out, source_feats = model(source_inputs, features=True)
-            _, target_feats = model(target_inputs, features=True)
+            target_out, target_feats = model(target_inputs, features=True)
 
             classif_loss = loss_fn(source_out, source_targets)
             cont_loss = da_loss_fn(source_feats, target_feats, is_pos)
@@ -48,8 +49,13 @@ def domain_adaption(
             opt.step()
 
             _, pred = torch.max(source_out, dim=1)
-            acc = torch.sum(pred == source_targets) / source_targets.size()[0]
+            acc = (pred == source_targets).float().mean()
             accuracies.append(acc.item())
+
+            _, pred = torch.max(target_out, dim=1)
+            target_acc = (pred == target_targets).float().mean()
+            target_accuracies.append(target_acc.item())
+
             classif_losses.append(classif_loss.item())
             cont_losses.append(cont_loss.item())
             losses.append(loss.item())
@@ -59,6 +65,7 @@ def domain_adaption(
         metrics.update({
             "Train Classif Loss": np.mean(classif_losses),
             "Train Cont Loss": np.mean(cont_losses),
+            "Dev Train Acc": np.mean(target_accuracies),
         })
         if (
             (epoch % config.log_freq == 0 or epoch + 1 == config.epochs)
@@ -73,11 +80,14 @@ def domain_adaption(
         wandb.log(metrics)
 
         print(
-            f"Train Classif Loss: {metrics['Train Classif Loss']:.3f} | "
-            f"Train Cont Loss: {metrics['Train Cont Loss']:.3f}"
+            f"Train Loss: {metrics['Train Loss']:.3f}"
         )
         print(
-            f"Train Loss: {metrics['Train Loss']:.3f} | "
+            f"Train Cont Loss: {metrics['Train Cont Loss']:.3f} | "
+            f"Dev Train Accuracy: {metrics['Dev Train Acc']:.3f}"
+        )
+        print(
+            f"Train Classif Loss: {metrics['Train Classif Loss']:.3f} | "
             f"Train Accuracy: {metrics['Train Acc']:.3f}"
         )
         if epoch % config.log_freq == 0 or epoch + 1 == config.epochs:
