@@ -29,10 +29,12 @@ class BothMicClassificationDataset(Dataset):
     input_encoder_cls = AudioInputEncoder
     target_encoder_cls = ClassificationEncoder
 
+
 class ThroatMicClassificationFinetuneDataset(Dataset):
     loader_cls = ThroatMicDomainAdaptionAudioLoader
     input_encoder_cls = AudioInputEncoder
     target_encoder_cls = ClassificationEncoder
+
 
 class ThroatMicClassificationDomainAdaptionDataset(DomainAdaptionDataset):
     loader_cls = ThroatMicDomainAdaptionAudioLoader

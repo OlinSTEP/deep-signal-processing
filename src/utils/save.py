@@ -2,7 +2,7 @@ import os
 import pickle
 import argparse
 
-from src.config import build_parsers, WANDB_EXCLUDE_KEYS
+from src.config import config_from_args, WANDB_EXCLUDE_KEYS
 from src.utils.build import build
 
 
@@ -29,10 +29,7 @@ def load(args, load_dir, device):
     with open(config_load_path, "rb") as f:
         loaded_config = pickle.load(f)
     print(f"Config loaded from {config_load_path}")
-
-    # Overwrite with any new command line options
-    _, parser = build_parsers()
-    config = parser.parse_args(args, namespace=loaded_config)
+    config = config_from_args(args, loaded=loaded_config)
 
     build_objs = build(config, device)
     dataset, loaders, model, opt, loss_fn = build_objs

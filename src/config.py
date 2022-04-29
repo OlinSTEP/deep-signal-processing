@@ -448,16 +448,27 @@ def build_parsers():
         default=1,
         help="How many sessions the target set should contain"
     )
+    parser.add_argument(
+        "--target_classif_loss", type=int,
+        default=0,
+        help="Whether to calculate classification loss for target set")
 
     return config_parser, parser
 
 
-def config_from_args(args):
+def config_from_args(args, loaded=None):
     config_parser, parser = build_parsers()
 
+    # Load defaults from previous run
+    if loaded:
+        parser.set_defaults(**vars(loaded))
+
+    # Load defaults from passed configuration file
     parsed_args, _ = config_parser.parse_known_args(args)
     load_defaults(parser, parsed_args.config)
-    config = parser.parse_args(args)
-    validate_config(config)
 
+    # Load final values from args
+    config = parser.parse_args(args)
+
+    validate_config(config)
     return config
