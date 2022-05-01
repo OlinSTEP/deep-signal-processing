@@ -7,7 +7,8 @@ import torch
 
 def calc_metrics(
     losses, accuracies,
-    labels=None, preds=None, target_labels=None, prefix="", use_wandb=True
+    labels=None, preds=None, target_labels=None, prefix="", use_wandb=True,
+    all_metrics=True
 ):
     if prefix:
         prefix = prefix.strip()
@@ -17,7 +18,7 @@ def calc_metrics(
     metrics[prefix + "Loss"] = np.mean(losses)
     metrics[prefix + "Acc"] = np.mean(accuracies)
 
-    if not labels or not preds or not target_labels:
+    if not all_metrics or (not labels or not preds or not target_labels):
         return metrics
 
     if use_wandb:
@@ -52,7 +53,10 @@ def calc_metrics(
     return metrics
 
 
-def evaluate(device, dataset, dataloader, model, loss_fn, prefix=""):
+def evaluate(
+    device, dataset, dataloader, model, loss_fn,
+    prefix="", all_metrics=True
+):
     losses = []
     accuracies = []
     all_labels = []
@@ -77,5 +81,4 @@ def evaluate(device, dataset, dataloader, model, loss_fn, prefix=""):
         losses, accuracies,
         labels=all_labels, preds=all_preds,
         target_labels=dataset.target_encoder.target_labels,
-        prefix=prefix
-    )
+        prefix=prefix, all_metrics=all_metrics)
