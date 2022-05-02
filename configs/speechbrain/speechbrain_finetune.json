@@ -1,0 +1,5 @@
+{
+  "project": "Audio Signal Processing",
+  "dataset": "finetune_speech_brain_throat_mic_classif",
+  "da_sessions": "1"
+}

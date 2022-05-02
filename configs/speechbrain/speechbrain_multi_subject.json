@@ -1,0 +1,28 @@
+{
+  "project": "Audio Signal Processing",
+  "dataset": "speech_brain_throat_mic_classif",
+  "data": "data/processed_data/unbalanced_multi_subject",
+
+  "cache_processed": "0",
+  "cache_raw": "1",
+  "split_sessions": "0",
+  "split_subjects": "1",
+  "splits": "60,20,20",
+  "seed": 1,
+
+  "max_ms": "1500",
+  "samplerate": "16000",
+  "channels": 1,
+
+  "model": "voxceleb",
+  "fcs": [128],
+  "drop_prob": 0.35,
+
+  "opt": "adam",
+  "loss": "cross_entropy",
+
+  "lr": "0.0005",
+  "epochs": "32",
+  "batch_size": "256",
+  "log_freq": "4"
+}
