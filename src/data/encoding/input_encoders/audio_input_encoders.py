@@ -172,19 +172,16 @@ class AudioInputEncoder(AbstractInputEncoder):
 
 
 class RawAudioInputEncoder(AudioInputEncoder):
-    def __init__(self, config):
-        super().__init__(config)
-        self.samplerate = config.samplerate
-
     def fit(self, inputs):
         wav = self.transform(next(inputs), False)
         self._input_dim = wav[0].shape
 
-    def transform(self, input_, _):
+    def transform(self, input_, is_train):
         sample_rates, channels = list(zip(*input_))
         resampled = [
             resample_channel(d, sr, self.samplerate)
             if sr != self.samplerate else d
             for sr, d in zip(sample_rates, channels)
         ]
-        return torch.tensor(np.squeeze(np.array(resampled)))
+        padded = self.pad_trunc_channels(resampled, is_train)
+        return torch.tensor(np.squeeze(np.array(padded))).float()

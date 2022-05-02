@@ -6,6 +6,9 @@ from speechbrain.pretrained import EncoderClassifier
 from .model import Model
 
 
+MODEL_DIR = "data/speechbrain_models/"
+
+
 def make_trainable(model):
     for p in model.parameters():
         p.requires_grad = True
@@ -23,7 +26,10 @@ class SpeechBrainModel(Model):
             raise NotImplementedError
 
         super().__init__()
-        self.model = EncoderClassifier.from_hparams(self.pretrained_path)
+        self.model = EncoderClassifier.from_hparams(
+            source=self.pretrained_path,
+            savedir=MODEL_DIR
+        )
         self.embedding_model = self.get_embedding_model(self.model)
 
         last_size = self.get_embedding_size()

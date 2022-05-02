@@ -132,4 +132,4 @@ dmypy.json
 data/datasets/*
 data/models/*
 wandb/*
-pretrained_models/*
+data/speechbrain_models/*
