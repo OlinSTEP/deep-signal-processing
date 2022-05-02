@@ -10,7 +10,6 @@ from src.data.filters import (
 )
 from src.utils.norm_image import StatsRecorder
 
-
 class AudioInputEncoder(AbstractInputEncoder):
     """
     Input encoder for audio.
@@ -170,3 +169,22 @@ class AudioInputEncoder(AbstractInputEncoder):
             aug_spec = transform(aug_spec, mask_value)
 
         return aug_spec
+
+
+class RawAudioInputEncoder(AudioInputEncoder):
+    def __init__(self, config):
+        super().__init__(config)
+        self.samplerate = config.samplerate
+
+    def fit(self, inputs):
+        wav = self.transform(next(inputs), False)
+        self._input_dim = wav[0].shape
+
+    def transform(self, input_, _):
+        sample_rates, channels = list(zip(*input_))
+        resampled = [
+            resample_channel(d, sr, self.samplerate)
+            if sr != self.samplerate else d
+            for sr, d in zip(sample_rates, channels)
+        ]
+        return torch.tensor(np.squeeze(np.array(resampled)))

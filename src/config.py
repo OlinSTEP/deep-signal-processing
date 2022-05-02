@@ -462,12 +462,14 @@ def build_parsers():
 def config_from_args(args, loaded=None):
     config_parser, parser = build_parsers()
 
+
+    # Load defaults from passed configuration file
+    parsed_args, _ = config_parser.parse_known_args(args)
+
     # Load defaults from previous run
     if loaded:
         parser.set_defaults(**vars(loaded))
 
-    # Load defaults from passed configuration file
-    parsed_args, _ = config_parser.parse_known_args(args)
     load_defaults(parser, parsed_args.config)
 
     # Load final values from args

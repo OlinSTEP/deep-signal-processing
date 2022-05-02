@@ -1,5 +1,5 @@
 from .audio_input_encoders import (
-    AudioInputEncoder
+    AudioInputEncoder, RawAudioInputEncoder
 )
 from .general_input_encoders import (
     PaddedSequenceEncoder
