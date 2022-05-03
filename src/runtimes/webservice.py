@@ -4,6 +4,7 @@ import base64
 
 import torch
 import scipy
+import pyttsx3
 from flask import Flask, request
 
 from src.config import config_from_args
@@ -16,6 +17,7 @@ model = None
 dataset = None
 device = build_device()
 channels = 1
+engine = pyttsx3.init()
 
 @app.route("/", methods=["POST"])
 def process_audio():
@@ -26,17 +28,22 @@ def process_audio():
     samplerate, data = scipy.io.wavfile.read(io.BytesIO(audio_decoded))
 
     input_data = [(samplerate, data) for _ in range(channels)]
-    # input_data = [(samplerate, data), (samplerate, data)]
     processed_data = dataset.input_encoder.transform(input_data, False).to(device)
 
     with torch.no_grad():
         out = model(processed_data[None, :])
-    _, pred = torch.max(out, dim=1)
-    confidences = torch.nn.functional.softmax(out[0], dim=0)
+    out = torch.squeeze(out)
+    _, pred = torch.max(out, dim=0)
+    confidences = torch.nn.functional.softmax(out, dim=0)
 
-    out_idx = int(pred.detach().cpu().numpy()[0])
-    print(dataset.target_encoder.inverse_transform(out_idx))
+    out_idx = int(pred.detach().cpu().numpy())
+    target = dataset.target_encoder.inverse_transform(out_idx)
+    print(target)
     print(list(confidences.detach().cpu().numpy()))
+
+    engine.say(target)
+    engine.runAndWait()
+
     return {'msg': 'success', "pred_idx": out_idx}
 
 def main(args):

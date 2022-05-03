@@ -5,7 +5,7 @@ import threading
 import torch
 import sounddevice as sd
 import numpy as np
-import scipy
+import pyttsx3
 import librosa.display
 
 from src.config import config_from_args
@@ -23,7 +23,7 @@ class KeyboardThread(threading.Thread):
         self.input_cbk(input())  # Waits to get input + Return
         return
 
-def record(samplerate=48000, device=0, channels=2):
+def record(samplerate=48000, device=7, channels=2):
     q = queue.Queue()
     b = queue.Queue()
 
@@ -68,14 +68,16 @@ def main(args, graph=False):
     dataset, _, model, _, _ = built_objs
 
     model.eval();
-    samplerate = 48000
+    samplerate = config.samplerate
+    engine = pyttsx3.init()
     while True:
-        data = record(samplerate=samplerate)
-        if data.shape[0] / 48000 < 0.4:
+        data = record(
+            samplerate=samplerate,
+            channels=config.channels
+        )
+        if data.shape[0] / samplerate < 0.4:
             continue
         input_data = [
-            (0, []),
-            (0, []),
             (samplerate, data[:, 0]),
             (samplerate, data[:, 1]),
         ]
@@ -94,6 +96,9 @@ def main(args, graph=False):
         for i, c in enumerate(confidences.detach().cpu().numpy()):
             print(f"  {dataset.target_encoder.target_labels[i]}: {c:.3f}")
         print("#" * 70)
+
+        engine.say(pred)
+        engine.runAndWait()
 
         if graph:
             print(config.samplerate)
