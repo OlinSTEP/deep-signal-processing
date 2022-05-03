@@ -29,6 +29,7 @@ def load(args, load_dir, device):
     with open(config_load_path, "rb") as f:
         loaded_config = pickle.load(f)
     delattr(loaded_config, "save_dir")
+    delattr(loaded_config, "config")
     print(f"Config loaded from {config_load_path}")
     config = config_from_args(args, loaded=loaded_config)
 
