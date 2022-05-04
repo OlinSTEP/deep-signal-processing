@@ -33,6 +33,7 @@ def process_audio():
     with torch.no_grad():
         out = model(processed_data[None, :])
     out = torch.squeeze(out)
+    out[2] = 0
     _, pred = torch.max(out, dim=0)
     confidences = torch.nn.functional.softmax(out, dim=0)
 

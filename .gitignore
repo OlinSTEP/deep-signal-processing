@@ -133,3 +133,4 @@ data/datasets/*
 data/models/*
 wandb/*
 data/speechbrain_models/*
+wav2vec2_checkpoints/*

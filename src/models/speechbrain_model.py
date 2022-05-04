@@ -1,7 +1,9 @@
+import os
+
 import torch
 import torch.nn as nn
-import numpy as np
 from speechbrain.pretrained import EncoderClassifier
+from speechbrain.pretrained.interfaces import foreign_class
 
 from .model import Model
 
@@ -15,21 +17,15 @@ def make_trainable(model):
 
 
 class SpeechBrainModel(Model):
-    pretrained_path = None
     def __init__(self, in_size, out_size, config):
         """
         Parameters:
             in_size: Input size, expected to be (channels, height, width)
             out_size: Number of output classes
         """
-        if self.pretrained_path is None:
-            raise NotImplementedError
 
         super().__init__()
-        self.model = EncoderClassifier.from_hparams(
-            source=self.pretrained_path,
-            savedir=MODEL_DIR
-        )
+        self.model = self.build_model()
         self.embedding_model = self.get_embedding_model(self.model)
 
         last_size = self.get_embedding_size()
@@ -47,7 +43,6 @@ class SpeechBrainModel(Model):
         batch = self.process_batch(batch)
         embedded_data = self.embedding_model(batch)
 
-        # Unclear why this is needed
         embedded_data = torch.squeeze(embedded_data)
 
         fc_data = embedded_data
@@ -60,6 +55,9 @@ class SpeechBrainModel(Model):
             return out, embedded_data
         return out
 
+    def build_model(self):
+        raise NotImplementedError
+
     def get_embedding_model(self, model):
         raise NotImplementedError
 
@@ -71,12 +69,16 @@ class SpeechBrainModel(Model):
 
 
 class SpeechBrainVoxCelebModel(SpeechBrainModel):
-    pretrained_path = "speechbrain/spkrec-xvect-voxceleb"
-
     def __init__(self, in_size, out_size, config):
         assert config.samplerate == 16000
         assert config.channels == 1
         super().__init__(in_size, out_size, config)
+
+    def build_model(self):
+        return EncoderClassifier.from_hparams(
+            source="speechbrain/spkrec-xvect-voxceleb",
+            savedir=MODEL_DIR
+        )
 
     def get_embedding_model(self, model):
         embedding_model = model.mods.embedding_model
@@ -93,12 +95,16 @@ class SpeechBrainVoxCelebModel(SpeechBrainModel):
 
 
 class SpeechBrainGoogleSpeechModel(SpeechBrainModel):
-    pretrained_path = "speechbrain/google_speech_command_xvector"
-
     def __init__(self, in_size, out_size, config):
         assert config.samplerate == 16000
         assert config.channels == 1
         super().__init__(in_size, out_size, config)
+
+    def build_model(self):
+        return EncoderClassifier.from_hparams(
+            source="speechbrain/google_speech_command_xvector",
+            savedir=MODEL_DIR
+        )
 
     def get_embedding_model(self, model):
         embedding_model = model.mods.embedding_model
@@ -110,7 +116,39 @@ class SpeechBrainGoogleSpeechModel(SpeechBrainModel):
 
     def process_batch(self, batch):
         batch = self.model.mods.compute_features(batch)
-        batch = self.model.mods.mean_var_norm(batch)
+        # batch = self.model.mods.mean_var_norm(batch)
+        return batch
+
+
+class SpeechBrainWav2Vec2Model(SpeechBrainModel):
+    def __init__(self, in_size, out_size, config):
+        assert config.samplerate == 16000
+        assert config.channels == 1
+        super().__init__(in_size, out_size, config)
+
+    def build_model(self):
+        model = foreign_class(
+            source="speechbrain/emotion-recognition-wav2vec2-IEMOCAP",
+            pymodule_file="custom_interface.py",
+            classname="CustomEncoderWav2vec2Classifier",
+            savedir=os.path.join(MODEL_DIR, "wav2vec2"),
+            freeze_params=False,
+        )
+        return model
+
+    def get_embedding_model(self, model):
+        transformer = model.mods.wav2vec2
+        make_trainable(transformer)
+        transformer.freeze = False
+        transformer.model.train()
+        pooling = model.mods.avg_pool
+        embedding_model = torch.nn.Sequential(transformer, pooling)
+        return embedding_model
+
+    def get_embedding_size(self):
+        return 768
+
+    def process_batch(self, batch):
         return batch
 
 
