@@ -389,6 +389,14 @@ def build_parsers():
         help="Dropout probability."
     )
 
+    ##### Speechbrain #####
+    parser.add_argument(
+        "--finetune_layers", type=int,
+        default=2,
+        help="Number of layers to finetune. All layers used if -1"
+    )
+
+
     ##########################################################################
     # Training
     ##########################################################################
