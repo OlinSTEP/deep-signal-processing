@@ -1,3 +1,5 @@
+from typing import Dict, Type, Callable, Any
+
 from .model import Model
 from .cnn_1d import CNN1D
 from .cnn_2d import CNN2D
@@ -12,7 +14,7 @@ from .cnn_pretrained import (
 import torch
 
 
-MODELS = {
+MODELS: Dict[str, Type[Model]] = {
     "1d_cnn": CNN1D,
     "2d_cnn": CNN2D,
     "voxceleb": SpeechBrainVoxCelebModel,
@@ -27,11 +29,11 @@ MODELS = {
 }
 
 
-OPTS = {
+OPTS: Dict[str, Type[torch.optim.Optimizer]] = {
     "adam": torch.optim.Adam
 }
 
 
-LOSSES = {
+LOSSES: Dict[str, Type[Callable[..., Any]]] = {
     "cross_entropy": torch.nn.CrossEntropyLoss
 }
