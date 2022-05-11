@@ -1,4 +1,7 @@
+from typing import List, Tuple, Optional
+
 import argparse
+from argparse import ArgumentParser, Namespace
 
 import json
 
@@ -9,16 +12,17 @@ from .data import DATASETS
 WANDB_EXCLUDE_KEYS = ["name", "group", "notes", "project", "wandb_off"]
 
 
-def load_defaults(parser, config_path):
+def load_defaults(parser: ArgumentParser, config_path: str) -> None:
     """
     Add defaults set in config file to parser. Useful for defining a second set
     of defaults more specific than the global defaults defined in this file.
-
-    Ex: Putting together a audio_processing.json config for audio specific
-    defaults like --dataset throat_mic_classif
-
     Json keys should be arguments (without '--') and values should be strings as
     they would be if input as command line args
+
+    Ex: {"dataset": "throat_mic_classif"}
+
+    :param parser ArgumentParser: Parser to load config defaults into
+    :param config_path str: Path to config file
     """
     if config_path is None:
         return
@@ -29,37 +33,87 @@ def load_defaults(parser, config_path):
 
 # PARSING TYPES
 
-def split_params(s):
+def split_params(s: str) -> Tuple[float, float, float]:
+    """
+    Parses dataset split argument
+
+    :param s str: Splits in train%,dev%,test% form. Ex: '60,10,10'
+    :rtype Tuple[float, float, float]: Tuple of train/dev/test split sizes
+    :raises argparse.ArgumentError: Raised if parsing fails
+    """
     try:
-        return [int(split) / 100 for split in s.split(',')]
+        return tuple(int(split) / 100 for split in s.split(','))
     except:
-        raise argparse.ArgumentError(
+        raise ValueError(
             "Argument must be of form train%,dev%,test%"
         )
 
-def conv_params(s):
+def conv_params(s: str) -> List[Tuple[int, int, int]]:
+    """
+    Parses conv parameters
+
+    :param s str: String where each layer is denoted by
+    kernel_len,kernel_stride,out_size, and each layer is seperated by spaces.
+    Ex: "5,2,16 3,2,32"
+    :rtype List[Tuple[int, int, int]]: Parsed conv parameters, where each tuple
+    is the layers kernel_len,kernel_stride,out_size
+    :raises argparse.ArgumentError: Raised if parsing fails
+    """
     try:
         layers = [l.split(",") for l in s.split()]
         return [(int(l),int(s),int(o)) for l,s,o in layers]
     except:
-        raise argparse.ArgumentError(
+        raise ValueError(
             "Argument must be of form kernel_len,kernel_stride,out_size"
         )
 
 
-def pool_params(s):
+def pool_params(s: str) -> List[Tuple[int, int]]:
+    """
+    Parses pooling parameters
+
+    :param s str: String where each layer is denoted by pool_len,pool_stride,
+    and each layer is seperated by spaces. Ex: "5,1 3,1"
+    :rtype List[Tuple[int, int]]: Parsed pool parameters, where each tuple is
+    the layers pool_len,pool_stride
+    :raises argparse.ArgumentError: Raised if parsing fails
+    """
     try:
-        pool_len, pool_stride = map(int, s.split(","))
-        return pool_len, pool_stride
+        layers = [l.split(",") for l in s.split()]
+        return [(int(l),int(s)) for l,s in layers]
     except:
-        raise argparse.ArgumentError(
+        raise ValueError(
             "Argument must be of form pool_len,pool_stride"
+        )
+
+def fc_params(s: str) -> List[int]:
+    """
+    Parses fully connected layer parameters
+
+    :param s str: String of space seperated ints, where each int denotes the
+    number of neurons in a layer.
+    :rtype List[int]: Parsed fc parameters, list of number of neurons
+    :raises argparse.ArgumentError: Raised if parsing fails
+    """
+    try:
+        layers = s.split(" ")
+        return [int(l) for l in layers]
+    except:
+        raise ValueError(
+            "Argument must be of form 'num_neurons num_neurons ...'"
         )
 
 
 # VALIDATION FUNCS
+# TODO: Replace with argparse validation functions
 
-def validate_convs_pools(config):
+def validate_convs_pools(config: Namespace):
+    """
+    Ensures conv and pool parameters are valid
+
+    :param config Namespace: Config to validate
+    :raises ValueError: Raised if conv and pool parameters of different length
+    """
     if config.pools is not None and len(config.convs) != len(config.pools):
         raise ValueError(
             "Equal number of conv layers and pooling layers must be defined. "
@@ -68,7 +122,13 @@ def validate_convs_pools(config):
         )
 
 
-def validate_aug_cache(config):
+def validate_aug_cache(config: Namespace):
+    """
+    Ensures augmentations and caching aren't used together
+
+    :param config Namespace: Config to validate
+    :raises ValueError: Raised if aug and caching are both toggled
+    """
     if config.aug and config.cache_processed:
         raise ValueError(
             "Augmentations do not work with cache_processed! Use cache_raw or "
@@ -76,13 +136,26 @@ def validate_aug_cache(config):
         )
 
 
-def validate_config(config):
+def validate_config(config: Namespace):
+    """
+    Ensures a config is valid
+
+    :param config Namespace: Config to validate
+    """
     validate_convs_pools(config)
     validate_aug_cache(config)
 
 
-def build_parsers():
-    config_parser = argparse.ArgumentParser(add_help=False)
+def build_parsers() -> Tuple[ArgumentParser, ArgumentParser]:
+    """
+    Builds command line argument parsers for loading the config and loading all
+    other arguments.
+
+    :rtype Tuple[ArgumentParser, ArgumentParser]: The config parser and the
+    normal argument parser. The config parser only loads the path to the
+    configuration file.
+    """
+    config_parser = ArgumentParser(add_help=False)
     config_parser.add_argument(
         "--config", type=str,
         default=None,
@@ -92,7 +165,7 @@ def build_parsers():
         )
     )
 
-    parser = argparse.ArgumentParser(
+    parser = ArgumentParser(
         description="Train Signal Processing Model",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[config_parser]
@@ -345,12 +418,12 @@ def build_parsers():
 
     ##### Layers #####
     parser.add_argument(
-        "--fcs", type=int, nargs='+',
+        "--fcs", type=fc_params,
         default=[128],
         help=(
             "Fully connected layers. Pass neurons per layer separated by "
             "spaces. Ex: For a model with 128 then 64 neurons, pass "
-            "'--fcs 128 64'"
+            '--fcs "128 64"'
         )
     )
     parser.add_argument(
@@ -364,7 +437,7 @@ def build_parsers():
         )
     )
     parser.add_argument(
-        "--pools", type=pool_params, nargs='+',
+        "--pools", type=pool_params,
         default=None,
         help=(
             "Pooling layers. Pass pool size and stride seperated by commas, "
@@ -467,7 +540,16 @@ def build_parsers():
     return config_parser, parser
 
 
-def config_from_args(args, loaded=None):
+def config_from_args(args: List[str], loaded: Optional[Namespace] = None) -> Namespace:
+    """
+    Builds configuration from command line arguments
+
+    :param args List[str]: Command line arguments, generally sys.argv[1:]
+    :param loaded Namespace: Previous config for loaded model. Any values are
+    overwritten by any config specified by --config, then by any arguments
+    passed explicitly
+    :rtype Namespace: Built config
+    """
     config_parser, parser = build_parsers()
 
     # Load defaults from previous run
