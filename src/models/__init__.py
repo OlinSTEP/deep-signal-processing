@@ -1,4 +1,4 @@
-from typing import Dict, Type, Callable, Any
+from typing import Dict, Type, Callable, Any, Union
 
 from .model import Model
 from .cnn_1d import CNN1D
@@ -29,8 +29,15 @@ MODELS: Dict[str, Type[Model]] = {
 }
 
 
-OPTS: Dict[str, Type[torch.optim.Optimizer]] = {
-    "adam": torch.optim.Adam
+OPTS: Dict[
+    str,
+    Union[
+        Type[torch.optim.Adam],
+        Type[torch.optim.Adadelta]
+    ]
+] = {
+    "adam": torch.optim.Adam,
+    "ada_delta": torch.optim.Adadelta
 }
 
 

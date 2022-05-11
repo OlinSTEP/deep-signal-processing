@@ -1,3 +1,9 @@
+from typing import Tuple
+from torch import Tensor
+from argparse import Namespace
+
+from abc import abstractmethod
+
 import torch.nn as nn
 import torchvision
 
@@ -69,26 +75,31 @@ def _update_first_layer(model, n_in, pretrained):
 
 
 class CNNPreTrained(Model):
-    def __init__(self, in_size, out_size, _):
+    """Pre-trained CNN model base class"""
+
+    def __init__(
+        self, in_size: Tuple[int, int, int], out_size: int, config: Namespace
+    ) -> None:
         """
-        Parameters:
-            in_size: Input size, expected to be (channels, height, width)
-            out_size: Number of output classes
+        :param in_size Tuple[int, int, int]: Input size, expected  to be
+        (channels, height, width)
+        :param out_size int: Number of output classes
         """
-        super().__init__()
+        super().__init__(in_size, out_size, config)
 
         self.model, input_size = self.build_model(out_size)
 
         in_channels, *_ = in_size
         _update_first_layer(self.model, in_channels, True)
 
+        # Fit imagenet normalization statistics to our number of channels
         def _pad_concat_norms(stats, pad):
             if len(stats) == in_channels:
                 return stats
             elif len(stats) > in_channels:
                 return stats[:in_channels]
             else:
-                stats + [pad for _ in range(in_channels - len(stats))]
+                return stats + [pad for _ in range(in_channels - len(stats))]
         norms = []
         norms.append(_pad_concat_norms(IMAGENET_STATS[0], 0))
         norms.append(_pad_concat_norms(IMAGENET_STATS[1], 1))
@@ -99,17 +110,32 @@ class CNNPreTrained(Model):
             torchvision.transforms.Normalize(*norms)
         ])
 
-    def forward(self, input_data):
+    def forward(self, input_data: Tensor) -> Tensor:
+        """
+        Forward pass of the model
+
+        :param input_data Tensor: Input data of shape [batch, channels, height,
+        width] or [channels, height, width]
+        """
         transformed_data = self.transforms(input_data)
         out = self.model(transformed_data)
         return out
 
-    def build_model(_):
-        raise NotImplementedError
+    @abstractmethod
+    def build_model(self, num_classes: int) -> Tuple[torchvision.models.Model, int]:
+        """
+        Builds the base pretrained model with the correct number of output
+        classes. Must be extended by subclasses.
+
+        :param num_classes int: Number of classes to predict
+        :rtype Tuple[torchvision.models.Model, int]: Built model and input image
+        size to crop to
+        """
+        pass
 
 
 class ResNet18(CNNPreTrained):
-    def build_model(self, num_classes):
+    def build_model(self, num_classes: int) -> Tuple[torchvision.models.Model, int]:
         model = torchvision.models.resnet18(pretrained=True)
         num_ftrs = model.fc.in_features
         model.fc = nn.Linear(num_ftrs, num_classes)
@@ -118,7 +144,7 @@ class ResNet18(CNNPreTrained):
 
 
 class ResNet34(CNNPreTrained):
-    def build_model(self, num_classes):
+    def build_model(self, num_classes: int) -> Tuple[torchvision.models.Model, int]:
         model = torchvision.models.resnet34(pretrained=True)
         num_ftrs = model.fc.in_features
         model.fc = nn.Linear(num_ftrs, num_classes)
@@ -127,7 +153,7 @@ class ResNet34(CNNPreTrained):
 
 
 class AlexNet(CNNPreTrained):
-    def build_model(self, num_classes):
+    def build_model(self, num_classes: int) -> Tuple[torchvision.models.Model, int]:
         model = torchvision.models.alexnet(pretrained=True)
         num_ftrs = model.classifier[6].in_features
         model.classifier[6] = nn.Linear(num_ftrs,num_classes)
@@ -136,7 +162,7 @@ class AlexNet(CNNPreTrained):
 
 
 class VGG(CNNPreTrained):
-    def build_model(self, num_classes):
+    def build_model(self, num_classes: int) -> Tuple[torchvision.models.Model, int]:
         model = torchvision.models.vgg11_bn(pretrained=True)
         num_ftrs = model.classifier[6].in_features
         model.classifier[6] = nn.Linear(num_ftrs,num_classes)
@@ -145,7 +171,7 @@ class VGG(CNNPreTrained):
 
 
 class SqueezeNet(CNNPreTrained):
-    def build_model(self, num_classes):
+    def build_model(self, num_classes: int) -> Tuple[torchvision.models.Model, int]:
         model = torchvision.models.squeezenet1_0(pretrained=True)
         model.classifier[1] = nn.Conv2d(
             512, num_classes, kernel_size=(1,1), stride=(1,1)
@@ -156,7 +182,7 @@ class SqueezeNet(CNNPreTrained):
 
 
 class DenseNet(CNNPreTrained):
-    def build_model(self, num_classes):
+    def build_model(self, num_classes: int) -> Tuple[torchvision.models.Model, int]:
         model = torchvision.models.densenet121(pretrained=True)
         num_ftrs = model.classifier.in_features
         model.classifier = nn.Linear(num_ftrs, num_classes)

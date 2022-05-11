@@ -1,3 +1,7 @@
+from typing import List, Tuple, Optional, Union
+from argparse import Namespace
+from torch import Tensor
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -6,39 +10,32 @@ from .model import Model
 
 
 class CNN2D(Model):
-    def __init__(self, in_size, out_size, config):
+    def __init__(
+        self, in_size: Tuple[int, int, int], out_size: int, config: Namespace
+    ) -> None:
         """
-        Parameters:
-            in_size: Input size, expected to be (channels, height, width)
-            out_size: Number of output classes
-        Config Parameters:
-            fcs: Iterable containing the amount of neurons per layer
-                ex: (1024, 512, 256) would make 3 fully connected layers, with
-                1024, 512 and 256 neurons respectively
-            convs: Iterable containing the kernel size, stride, output channels
-                for each convolutional layer.
-                ex: ((3, 1, 16)) would make 1 convolution layer with an 3x3
-                kernel, 1 stride, and 16 output channels
-            pools: Iterable containing the max pool length and stride for each
-                convolutional layer. None indicates no pooling used. Length < 1
-                indicates no pooling for the corresponding pooling layer.
-                ex: ((2, 2)) would make 1 pooling layer of size 2x2 and 2 stride
-            adaptive_pool: Bool indicating whether the final channels should be
-                pooled down to single average values or not.
-            drop_prob: Probability of dropout. Dropout is not used if < 0,
-                otherwise applied between all layers.
+        :param in_size Tuple[int, int, int]: Input size, expected  to be
+        (channels, height, width)
+        :param out_size int: Number of output classes
+        :param config Namespace: Config to use
         """
-        super().__init__()
+        super().__init__(in_size, out_size, config)
 
         in_channels, _, _ = in_size
         self.convs = nn.ModuleList()
         last_size = in_channels
 
-        # Not setting pools means no pooling used
-        if not config.pools:
-            config.pools = [(0, 0) for _ in config.convs]
+        fcs: List[int] = config.fcs
+        convs: List[Tuple[int, int, int]] = config.convs
+        pools: Optional[List[Tuple[int, int]]] = config.pools
+        adaptive_pool: bool = config.adaptive_pool
+        drop_prob: float = config.drop_prob
 
-        for conv_params, pool_params in zip(config.convs, config.pools):
+        # Not setting pools means no pooling used
+        if not pools:
+            pools = [(0, 0) for _ in convs]
+
+        for conv_params, pool_params in zip(convs, pools):
             kernel_len, kernel_stride, out_channels = conv_params
             pool_len, pool_stride = pool_params
             self.convs.append(nn.Conv2d(
@@ -47,12 +44,12 @@ class CNN2D(Model):
             self.convs.append(nn.BatchNorm2d(out_channels))
             if pool_len > 1:
                 self.convs.append(nn.MaxPool2d(pool_len, pool_stride))
-            if config.drop_prob > 0:
-                self.convs.append(nn.Dropout(p=config.drop_prob))
+            if drop_prob > 0:
+                self.convs.append(nn.Dropout(p=drop_prob))
             last_size = out_channels
 
         self.flatten = nn.ModuleList()
-        if config.adaptive_pool:
+        if adaptive_pool:
             self.flatten.append(torch.nn.AdaptiveAvgPool2d((1,1)))
         self.flatten.append(torch.nn.Flatten(start_dim=1))
 
@@ -64,17 +61,29 @@ class CNN2D(Model):
         last_size = x.shape[1]
 
         self.fcs = nn.ModuleList()
-        for fc_size in config.fcs:
+        for fc_size in fcs:
             self.fcs.append(nn.Linear(last_size, fc_size))
-            if config.drop_prob > 0:
-                self.fcs.append(nn.Dropout(p=config.drop_prob))
+            if drop_prob > 0:
+                self.fcs.append(nn.Dropout(p=drop_prob))
             last_size = fc_size
         self.out = nn.Linear(last_size, out_size)
 
         self.activation = nn.ReLU()
 
 
-    def forward(self, input_data, features=False):
+    def forward(self, input_data: Tensor, features: bool = False) \
+            -> Union[Tensor, Tuple[Tensor, Tensor]]:
+        """
+        Forward pass of the model
+
+        :param input_data Tensor: Input data of shape [batch, channels, height,
+        width] or [channels, height, width]
+        :param features bool: Whether to return intermediate features in
+        addition to final outputs
+        :rtype Union[Tensor, Tuple[Tensor, Tensor]]: Output data of shape
+        [batch, num_targets] or [num_targets]. Optionally returns intermediate
+        features of shape [batch, dim_size] or [dim_size] if features = True
+        """
         conv_data = input_data
         for conv in self.convs:
             conv_data = conv(conv_data)
