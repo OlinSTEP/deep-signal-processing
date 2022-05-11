@@ -1,3 +1,4 @@
+from .model import Model
 from .cnn_1d import CNN1D
 from .cnn_2d import CNN2D
 from .speechbrain_model import (
