@@ -123,15 +123,10 @@ class SpeechBrainGoogleSpeechModel(SpeechBrainModel):
 
 class SpeechBrainWav2Vec2Model(SpeechBrainModel):
     def __init__(self, in_size, out_size, config):
-        if config.finetune_layers == -1:
-            self.finetune_layers = 11
-        else:
-            self.finetune_layers = config.finetune_layers
-
+        self.finetune_layers = config.finetune_layers
         assert config.samplerate == 16000
         assert config.channels == 1
         assert self.finetune_layers <= 11
-
         super().__init__(in_size, out_size, config)
 
     def build_model(self):
@@ -147,17 +142,20 @@ class SpeechBrainWav2Vec2Model(SpeechBrainModel):
     def get_embedding_model(self, model):
         transformer = model.mods.wav2vec2
 
-        unfreeze_layers = {str(11 - i) for i in range(self.finetune_layers)}
-        regex_str = r"model\.encoder\.layers\.(\d+)\..*$"
-        for name, p in transformer.named_parameters():
-            match = re.match(regex_str, name)
-            if match is None:
-                continue
-            layer_num = match.group(1)
-            if layer_num in unfreeze_layers:
-                p.requires_grad = True
+        if self.finetune_layers == -1:
+            make_trainable(transformer)
+        else:
+            unfreeze_layers = {11 - i for i in range(self.finetune_layers)}
+            regex_str = r"model\.encoder\.layers\.(\d+)\..*$"
+            for name, p in transformer.named_parameters():
+                match = re.match(regex_str, name)
+                if match is None:
+                    continue
+                layer_num = int(match.group(1))
+                if layer_num in unfreeze_layers:
+                    p.requires_grad = True
 
-        if unfreeze_layers:
+        if self.finetune_layers != 0:
             transformer.freeze = False
             transformer.model.train()
 
