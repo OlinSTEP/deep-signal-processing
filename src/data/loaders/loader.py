@@ -1,3 +1,6 @@
+from typing import Tuple, List
+from numpy.typing import NDArray
+
 from abc import ABC, abstractmethod
 
 
@@ -7,34 +10,34 @@ class AbstractLoader(ABC):
 
     Loaders load the raw data of a specific format
     """
-    def __init__(self, config):
-        self.data_path = config.data
+    def __init__(self, config) -> None:
+        self.data_path: str = config.data
         super().__init__()
 
     @abstractmethod
-    def load(self, index):
+    def load(self, index: int) -> Tuple[List[Tuple[int, NDArray]], int, bool]:
         """
         Loads a single datapoint from the disk
 
         :param index int: Index of datapoint to load
-        :returns: Tuple of (input_data, target, is_train).
-            input_data is a list of (sample_rate, sequence_data) tuples for
-            every input channel
-            target is a single value
-            is_train is a bool, whether the sample is in the train set or not
+        :rtype Tuple[List[Tuple[int, NDArray]]], int, bool ]: Tuple of
+        (input_data, target, is_train). input_data is a list of (sample_rate,
+        channel_data) tuples for every input channel, target is the target idx,
+        is_train indicates whether the sample is in the train set or not
         """
         pass
 
     @abstractmethod
-    def build_splits(self):
+    def build_splits(self) -> Tuple[List[int], ...]:
         """
         Builds train / dev / test split indexs
 
-        :returns: Tuple of (train_idxs, dev_idxs, train_idxs), where each value
-            is a list of idxs that can be passed to load()
+        :rtype Tuple[List[int], ...]: Variable number of lists, where each list
+        contains the indicies for items in the respective split. The number of
+        split varies on the loader implementation.
         """
         pass
 
     @abstractmethod
-    def __len__(self):
+    def __len__(self) -> int:
         pass

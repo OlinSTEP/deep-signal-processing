@@ -1,7 +1,12 @@
+from typing import Set, List, Tuple, Optional
+from argparse import Namespace
+from numpy.typing import NDArray
+
 import os
 import re
 import random
 import json
+from abc import abstractmethod
 from itertools import chain
 
 import scipy.io.wavfile
@@ -12,24 +17,34 @@ from .loader import AbstractLoader
 
 
 class AudioLoader(AbstractLoader):
-    def __init__(self, config):
+    """
+    Audio loading base class
+
+    Implements all loader functions, but requires an implementation for loading
+    the audio files. Sub-classes can load any number of audio files.
+    """
+
+    def __init__(self, config: Namespace) -> None:
         super().__init__(config)
 
-        self.seed = config.seed
+        self.seed: int = config.seed
 
-        self.channels = config.channels
+        self.channels: int = config.channels
 
-        self.stratify = config.stratify
-        self.train_split, self.dev_split, self.test_split = config.splits
-        self.split_sessions = config.split_sessions
-        self.split_subjects = config.split_subjects
-        self.use_cache = config.cache_raw
+        self.train_split: float = config.splits[0]
+        self.dev_split: float = config.splits[1]
+        self.test_split: float = config.splits[2]
 
-        self.train_idxs = {}
+        self.stratify: bool = config.stratify
+        self.split_sessions: bool = config.split_sessions
+        self.split_subjects: bool = config.split_subjects
+        self.use_cache: bool = config.cache_raw
 
-        self.files = []     # Contains file path tuples
-        self.sessions = []  # Contains self.files idxs
-        self.subjects = []  # Contains self.session idxs
+        self.train_idxs: Set[int] = set()
+
+        self.files: List[Tuple[str, Tuple[str, ...]]] = []  # Contains file paths
+        self.sessions: List[List[int]] = []  # Contains self.files idxs
+        self.subjects: List[List[int]] = []  # Contains self.session idxs
 
         subject_dirs = sorted([
             os.path.join(self.data_path, fn)
@@ -64,19 +79,26 @@ class AudioLoader(AbstractLoader):
             self.cache = [self.load(i) for i in range(len(self))]
             self.use_cache = True
 
-    def _get_audio_paths(self, session_dir, idx):
-        raise NotImplementedError
+    @abstractmethod
+    def _get_audio_paths(self, session_dir: str, idx: int) -> Tuple[str, ...]:
+        """
+        Gets paths of audio files given an idx
 
-    def load(self, idx):
+        :param session_dir str: Parent directory to load file within
+        :param idx int: Index of file
+        :rtype Tuple[str, ...]: Tuple of audio files to load
+        """
+        pass
+
+    def load(self, idx: int) -> Tuple[List[Tuple[int, NDArray]], int, bool]:
         """
         Loads a single datapoint from the disk
 
-        :param idx int: Index of datapoint to load
-        :returns: Tuple of (input_data, target).
-            Input data is a list of (sample_rate, sequence_data) tuples for
-            every input channel. Corresponds to:
-            [reg_audio_0, reg_audio_1, throat_audio_0, throat_audio_1]
-            Target is a single value
+        :param index int: Index of datapoint to load
+        :rtype Tuple[List[Tuple[int, NDArray]]], int, bool ]: Tuple of
+        (input_data, target, is_train). input_data is a list of (sample_rate,
+        channel_data) tuples for every input channel, target is the target idx,
+        is_train indicates whether the sample is in the train set or not
         """
         if self.use_cache:
             return self.cache[idx]
@@ -112,7 +134,14 @@ class AudioLoader(AbstractLoader):
 
         return input_, target, is_train
 
-    def build_splits(self):
+    def build_splits(self) -> Tuple[List[int], List[int], List[int]]:
+        """
+        Builds train / dev / test split indexs
+
+        :rtype Tuple[List[int], List[int], List[int]]: Tuple of train / dev /
+        test split idxs, where each list contains the indicies for items in the
+        respective split.
+        """
         if self.split_sessions:
             return self.build_splits_session()
         elif self.split_subjects:
@@ -120,8 +149,20 @@ class AudioLoader(AbstractLoader):
         else:
             return self.build_splits_naive()
 
-    def build_splits_naive(self):
-        def _split_helper(idxs, targets, split):
+    def build_splits_naive(self) -> Tuple[List[int], List[int], List[int]]:
+        """
+        Builds train / dev / test split idxs with no holdout sessions or holdout
+        users
+
+        Ensures that an equal portion of each sessions and each subject is
+        present in the holdout set.
+
+        :rtype Tuple[List[int], List[int], List[int]]: Tuple of train / dev /
+        test split idxs, where each list contains the indicies for items in the
+        respective split.
+        """
+        def _split_helper(idxs: List[int], targets: Optional[List[int]], split: float) \
+                -> Tuple[List[int], List[int], Optional[List[int]]]:
             """
             Handle splits of 0 and 1 manually since sklearn gets mad when we
             pass them to train_test_split()
@@ -166,7 +207,17 @@ class AudioLoader(AbstractLoader):
         self.train_idxs = set(train_idxs)
         return train_idxs, dev_idxs, test_idxs
 
-    def build_splits_session(self):
+    def build_splits_session(self) -> Tuple[List[int], List[int], List[int]]:
+        """
+        Builds train / dev / test split idxs with holdout sessions
+
+        Ensures that an equal portion of each subject is present in the holdout
+        set, while ensuring that some sessions only appear in the holdout set.
+
+        :rtype Tuple[List[int], List[int], List[int]]: Tuple of train / dev /
+        test split idxs, where each list contains the indicies for items in the
+        respective split.
+        """
         random.seed(self.seed)
         train_idxs, dev_idxs, test_idxs = [], [], []
         for subject_sessions in self.subjects:
@@ -178,7 +229,7 @@ class AudioLoader(AbstractLoader):
             # Randomizes subject_session not in-place
             session_idxs = random.sample(subject_sessions, num_sessions)
 
-            def _load_session_idxs(dest, n):
+            def _load_session_idxs(dest: List[int], n: int) -> None:
                 for _ in range(n):
                     session_idx = session_idxs.pop()
                     file_idxs = self.sessions[session_idx]
@@ -190,7 +241,16 @@ class AudioLoader(AbstractLoader):
         self.train_idxs = set(train_idxs)
         return train_idxs, dev_idxs, test_idxs
 
-    def build_splits_subject(self):
+    def build_splits_subject(self) -> Tuple[List[int], List[int], List[int]]:
+        """
+        Builds train / dev / test split idxs with holdout subjejcts
+
+        Ensures that some subjects only appear in the holdout set.
+
+        :rtype Tuple[List[int], List[int], List[int]]: Tuple of train / dev /
+        test split idxs, where each list contains the indicies for items in the
+        respective split.
+        """
         num_subjects = len(self.subjects)
         train_subjects = int(num_subjects * self.train_split)
         test_subjects = int(num_subjects * self.test_split)
@@ -200,7 +260,7 @@ class AudioLoader(AbstractLoader):
         subject_idxs = list(range(num_subjects))
         random.shuffle(subject_idxs)
 
-        def _load_subject_idxs(dest, n):
+        def _load_subject_idxs(dest: List[int], n: int) -> None:
             for _ in range(n):
                 subject_idx = subject_idxs.pop()
                 session_idxs = self.subjects[subject_idx]
@@ -214,24 +274,27 @@ class AudioLoader(AbstractLoader):
         self.train_idxs = set(train_idxs)
         return train_idxs, dev_idxs, test_idxs
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.files)
 
 
 class BothMicAudioLoader(AudioLoader):
-    def _get_audio_paths(self, session_dir, idx):
+    """Loads regular and throat mic audio files"""
+    def _get_audio_paths(self, session_dir: str, idx: int) -> Tuple[str, str]:
         reg_path = os.path.join(session_dir, f"{idx}_reg_audio.wav")
         throat_path = os.path.join(session_dir, f"{idx}_throat_audio.wav")
         return (reg_path, throat_path)
 
 
 class RegMicAudioLoader(AudioLoader):
-    def _get_audio_paths(self, session_dir, idx):
+    """Loads regular mic audio files"""
+    def _get_audio_paths(self, session_dir: str, idx: int) -> Tuple[str]:
         reg_path = os.path.join(session_dir, f"{idx}_reg_audio.wav")
         return (reg_path,)
 
 
 class ThroatMicAudioLoader(AudioLoader):
-    def _get_audio_paths(self, session_dir, idx):
+    """Loads throat mic audio files"""
+    def _get_audio_paths(self, session_dir: str, idx: int) -> Tuple[str]:
         throat_path = os.path.join(session_dir, f"{idx}_throat_audio.wav")
         return (throat_path,)

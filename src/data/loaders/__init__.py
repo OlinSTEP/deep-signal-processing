@@ -4,6 +4,3 @@ from .audio_loader import (
 from .domain_adaption_audio_loader import (
     ThroatMicDomainAdaptionAudioLoader
 )
-from .gesture_loader import (
-    GestureLoader
-)

@@ -1,21 +1,37 @@
-import os
+from typing import Tuple, List, Optional
+from argparse import Namespace
+
 import random
 from itertools import chain
 
-from .audio_loader import AudioLoader
+from .audio_loader import AudioLoader, ThroatMicAudioLoader
 
 
 class DomainAdaptionAudioLoader(AudioLoader):
-    def __init__(self, config):
-        self.da_sessions = config.da_sessions
+    """AudioLoader that produces splits for finetuning and domain adaption"""
+
+    def __init__(self, config: Namespace) -> None:
+        self.da_sessions: int = config.da_sessions
 
         if config.split_subjects != 1 or config.split_sessions == 1:
             raise ValueError(
                 "Domain adaption only supports subject splitting"
             )
+
         super().__init__(config)
 
-    def build_splits(self):
+    def build_splits(self) -> Tuple[
+        List[int], List[int], List[int], List[int], List[int]
+    ]:
+        """
+        Builds train / dev / test split indexs
+
+        :rtype Tuple[
+            List[int], List[int], List[int], List[int], List[int]
+        ]: Tuple of train / dev train / dev / test train / test split idxs,
+        where each list containst the indicies for items in the repspective
+        split. dev train and test train splits are for finetuning
+        """
         num_subjects = len(self.subjects)
         train_subjects = int(num_subjects * self.train_split)
         test_subjects = int(num_subjects * self.test_split)
@@ -25,7 +41,11 @@ class DomainAdaptionAudioLoader(AudioLoader):
         subject_idxs = list(range(num_subjects))
         random.shuffle(subject_idxs)
 
-        def _load_subject_idxs(dest, n, dest_train=None):
+        def _load_subject_idxs(
+            dest: List[int], n: int, dest_train: Optional[List[int]] = None
+        ) -> None:
+            """Adds file idxs to dest. Optionally adds self.da_sessions sessions
+            worth of files to dest_train"""
             if n == 0:
                 return
 
@@ -60,7 +80,7 @@ class DomainAdaptionAudioLoader(AudioLoader):
         )
 
 
-class ThroatMicDomainAdaptionAudioLoader(DomainAdaptionAudioLoader):
-    def _get_audio_paths(self, session_dir, idx):
-        throat_path = os.path.join(session_dir, f"{idx}_throat_audio.wav")
-        return (throat_path,)
+class ThroatMicDomainAdaptionAudioLoader(
+    DomainAdaptionAudioLoader, ThroatMicAudioLoader
+):
+    pass
